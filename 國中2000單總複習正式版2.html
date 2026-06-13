@@ -192,7 +192,7 @@
                                         <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">📝</div>
                                         <div>
                                             <p class="font-bold text-sm sm:text-base text-slate-200">例句克漏字大考驗</p>
-                                            <p class="text-[11px] sm:text-xs text-amber-400">自動鎖定並限用 B5、B6、高階單字範圍 (自動過濾片語)</p>
+                                            <p class="text-[11px] sm:text-xs text-amber-400">適合高年級！自動鎖定並限用 B5、B6、高階單字範圍 (自動過濾片語)</p>
                                         </div>
                                     </div>
                                 </div>
@@ -238,21 +238,21 @@
                                         <input type="checkbox" name="level" value="B6" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
                                         <span class="text-xs sm:text-sm font-semibold text-indigo-300">第六冊 (B6)</span>
                                     </label>
-                                    <!-- 🌟 新增高階補充 LV1 ~ LV4 細緻分類 -->
+                                    <!-- 🌟 核心修正：將 checkbox value 與 Google Sheet 真實 level 值 ("等級 1" ~ "等級 4") 完美對齊 -->
                                     <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="補充LV1" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <input type="checkbox" name="level" value="等級 1" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
                                         <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV1</span>
                                     </label>
                                     <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="補充LV2" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <input type="checkbox" name="level" value="等級 2" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
                                         <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV2</span>
                                     </label>
                                     <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="補充LV3" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <input type="checkbox" name="level" value="等級 3" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
                                         <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV3</span>
                                     </label>
                                     <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="補充LV4" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <input type="checkbox" name="level" value="等級 4" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
                                         <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV4</span>
                                     </label>
                                 </div>
@@ -517,7 +517,7 @@
 
     <!-- ================= JavaScript 核心控制邏輯 ================= -->
     <script>
-        // ================= 1. 本地調試用極致範例題庫 (包含 B1~B6、補充LV1~LV4與片語) =================
+        // ================= 1. 本地調試用高規格備援資料 (對齊真實 "等級 1" ~ "等級 4" 欄位) =================
         const VOCAB_DATA = [
             { word: "look for", past_tense: "looked for", past_participle: "looked for", part_of_speech: "v. phr.", translation: "尋找", level: "B1", example_en: "I am looking for my keys; have you seen them anywhere?", example_ch: "我正在尋找我的鑰匙；你有在任何地方看到它們嗎？" },
             { word: "delicious", past_tense: "", past_participle: "", part_of_speech: "adj.", translation: "美味的", level: "B1", example_en: "My grandmother baked a delicious apple pie for dessert.", example_ch: "我祖母烤了一款極為美味的蘋果派作為甜點。" },
@@ -527,11 +527,11 @@
             { word: "be filled with", past_tense: "was filled with", past_participle: "been filled with", part_of_speech: "v. phr.", translation: "充滿", level: "B5", example_en: "The bottle was filled with fresh water after he washed it.", example_ch: "在他清洗瓶子之後，瓶子裡裝滿了新鮮的水。" },
             { word: "experience", past_tense: "experienced", past_participle: "experienced", part_of_speech: "n. / v.", translation: "經驗；體驗", level: "B5", example_en: "We had a wonderful experience traveling around the island.", example_ch: "我們在環島旅行中獲得了美妙的體驗。" },
             { word: "make up for", past_tense: "made up for", past_participle: "made up for", part_of_speech: "v. phr.", translation: "彌補；補償", level: "B6", example_en: "Nothing can make up for the loss of a close and loyal friend.", example_ch: "沒有任何事物能夠彌補失去一位親密且忠實的朋友的遺憾。" },
-            { word: "put up with", past_tense: "put up with", past_participle: "put up with", part_of_speech: "v. phr.", translation: "忍受；容忍", level: "補充LV1", example_en: "I cannot put up with your constant complaints and negative attitude anymore.", example_ch: "我再也無法忍受你無休止的抱怨和消極的態度了。" },
-            { word: "opportunity", past_tense: "", past_participle: "", part_of_speech: "n.", translation: "機會", level: "補充LV2", example_en: "You should take every opportunity to practice speaking English.", example_ch: "妳應該抓住每一次的機會來練習開口說英語。" }
+            { word: "put up with", past_tense: "put up with", past_participle: "put up with", part_of_speech: "v. phr.", translation: "忍受；容忍", level: "等級 1", example_en: "I cannot put up with your constant complaints and negative attitude anymore.", example_ch: "我再也無法忍受你無休止的抱怨和消極的態度了。" },
+            { word: "opportunity", past_tense: "", past_participle: "", part_of_speech: "n.", translation: "機會", level: "等級 3", example_en: "You should take every opportunity to practice speaking English.", example_ch: "妳應該抓住每一次的機會來練習開口說英語。" }
         ];
 
-        // 雲端同步接口 (保留聲明以符合原結構規格，此處暫不對外 fetch 以確保 Canvas 調試順暢不報錯)
+        // 雲端同步連結：已完全接回
         const SPREADSHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQftdYi4gct5e5h3-JT1SIJU2lZ97d1Duc48SgppKRMiHzSu6aFR2kC5YyZOgFVIPkulV70O91GA_Ct/pub?output=csv";
 
         // ================= 2. 系統預設精選題庫 =================
@@ -677,7 +677,7 @@
 
         // ================= 5. 資料初始化與載入 =================
         window.onload = function() {
-            // 🚨 恢復 fetch() 開關：本地伺服器調試時，這行會成功連上您的 Google Sheets 題庫並下載解析！
+            // 自動偵測並啟動雲端 fetch() 聯網載入，本機伺服器調試時可完美連通解鎖
             if (SPREADSHEET_CSV_URL && SPREADSHEET_CSV_URL.trim() !== "" && SPREADSHEET_CSV_URL !== "這裡留空，我後續會填入 Google Sheets 發布為 CSV 的網址") {
                 fetchCSVData(SPREADSHEET_CSV_URL);
             } else {
@@ -693,7 +693,7 @@
         async function fetchCSVData(url) {
             let fetchCompleted = false;
             
-            // 2.5 秒超時機制，防止瀏覽器阻擋造成無限轉圈載入
+            // 2.5 秒超時安全降級機制，防止因為網絡卡死導致白屏
             const timeoutId = setTimeout(() => {
                 if (!fetchCompleted) {
                     console.warn("雲端載入超時，自動啟動無縫備援題庫...");
@@ -720,8 +720,7 @@
             } catch (error) {
                 fetchCompleted = true;
                 clearTimeout(timeoutId);
-                console.warn("安全沙箱或同源政策 CORS 封鎖了雲端載入，改為啟動無縫備援題庫：", error);
-                
+                console.warn("安全沙箱或 CORS 政策限制雲端載入，啟動無縫備援題庫：", error);
                 isUsingFallback = true;
                 loadDefaultDatabase();
             }
@@ -781,7 +780,7 @@
                 badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold mb-4 border border-amber-500/20 bg-amber-500/10 text-amber-400";
                 badge.innerHTML = `
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>已啟用內建單字庫 (如需發布網路，請下載 HTML 本地同步即可)</span>
+                    <span>已啟用內建單字庫 (如需同步 Google Sheets，請在本機架設本地伺服器測試)</span>
                 `;
             } else {
                 badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold mb-4 border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-md shadow-emerald-500/5";
@@ -857,11 +856,11 @@
             const b5 = document.querySelector('input[name="level"][value="B5"]');
             const b6 = document.querySelector('input[name="level"][value="B6"]');
             
-            // 🌟 分離四個補充等核取方塊
-            const lvl1 = document.querySelector('input[name="level"][value="補充LV1"]');
-            const lvl2 = document.querySelector('input[name="level"][value="補充LV2"]');
-            const lvl3 = document.querySelector('input[name="level"][value="補充LV3"]');
-            const lvl4 = document.querySelector('input[name="level"][value="補充LV4"]');
+            // 🌟 核心修正：將等級變數與 HTML value ("等級 1" ~ "等級 4") 完美綁定
+            const lvl1 = document.querySelector('input[name="level"][value="等級 1"]');
+            const lvl2 = document.querySelector('input[name="level"][value="等級 2"]');
+            const lvl3 = document.querySelector('input[name="level"][value="等級 3"]');
+            const lvl4 = document.querySelector('input[name="level"][value="等級 4"]');
             
             const notice = document.getElementById("clozeNotice");
 
@@ -872,7 +871,7 @@
                     cb.disabled = true;
                     cb.parentElement.classList.add("opacity-30", "cursor-not-allowed");
                 });
-                // 強制確保 B5, B6 或任何補充等級 至少一項被勾選
+                // 強制確保 B5, B6 或 高階 至少一項被勾選
                 const anySupplementChecked = lvl1.checked || lvl2.checked || lvl3.checked || lvl4.checked;
                 if (!b5.checked && !b6.checked && !anySupplementChecked) {
                     b5.checked = true;
@@ -928,13 +927,35 @@
             }
         }
 
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function switchScreen(screenId) {
+            ["screenSetup", "screenFlashcard", "screenQuiz", "screenSummary"].forEach(id => {
+                document.getElementById(id).classList.add("hidden");
+            });
+            document.getElementById(screenId).classList.remove("hidden");
+        }
+
         // ================= 9. 單字卡瀏覽模式引擎 =================
         function setupFlashcardView() {
             if (quizQueue.length === 0) return;
             const item = quizQueue[currentQuizIndex];
             
             document.getElementById("fcIndex").innerText = `${currentQuizIndex + 1} / ${quizQueue.length}`;
-            document.getElementById("fcLevel").innerText = item.level;
+            // 將等級欄位轉換成直覺縮寫，優雅展示
+            let displayLevel = item.level;
+            if (displayLevel === "等級 1") displayLevel = "補充LV1";
+            if (displayLevel === "等級 2") displayLevel = "補充LV2";
+            if (displayLevel === "等級 3") displayLevel = "補充LV3";
+            if (displayLevel === "等級 4") displayLevel = "補充LV4";
+            
+            document.getElementById("fcLevel").innerText = displayLevel;
             document.getElementById("fcWord").innerText = item.word;
             document.getElementById("fcPOS").innerText = item.part_of_speech ? `[${item.part_of_speech}]` : "";
             document.getElementById("fcTranslation").innerText = item.translation;
@@ -1004,6 +1025,12 @@
             speakWord(word);
         }
 
+        function speakQuizWord() {
+            if (quizQueue.length === 0) return;
+            const currentItem = quizQueue[0];
+            speakWord(currentItem.word);
+        }
+
         // ================= 11. 測驗引擎與克漏字翻譯切換 =================
         let currentOptions = []; 
 
@@ -1031,7 +1058,13 @@
             const clozeTipContainer = document.getElementById("clozeTipContainer");
             const toggleTranslationBtn = document.getElementById("toggleTranslationBtn");
 
-            wordLevel.innerText = `${currentItem.level} • ${currentItem.part_of_speech}`;
+            let displayLevel = currentItem.level;
+            if (displayLevel === "等級 1") displayLevel = "補充LV1";
+            if (displayLevel === "等級 2") displayLevel = "補充LV2";
+            if (displayLevel === "等級 3") displayLevel = "補充LV3";
+            if (displayLevel === "等級 4") displayLevel = "補充LV4";
+
+            wordLevel.innerText = `${displayLevel} • ${currentItem.part_of_speech}`;
             
             translationTip.classList.add("hidden");
             clozeTipContainer.classList.add("hidden");
@@ -1065,6 +1098,43 @@
                 wordText.innerText = clozeSentence;
                 renderOptionButtons(currentOptions.map(o => o.word));
             }
+        }
+
+        function toggleClozeTranslation() {
+            const translationTip = document.getElementById("questionTranslation");
+            const toggleBtn = document.getElementById("toggleTranslationBtn");
+            if (translationTip.classList.contains("hidden")) {
+                translationTip.classList.remove("hidden");
+                toggleBtn.innerHTML = `<span>🙈 隱藏中文提示</span>`;
+            } else {
+                translationTip.classList.add("hidden");
+                toggleBtn.innerHTML = `<span>💡 顯示中文提示</span>`;
+            }
+        }
+
+        function generateOptions(correctObj) {
+            let options = [correctObj];
+            let filterPool = selectedWords.filter(item => item.word !== correctObj.word);
+            
+            if (filterPool.length < 3) {
+                filterPool = database.filter(item => item.word !== correctObj.word);
+            }
+
+            const shuffledPool = shuffleArray([...filterPool]);
+            options.push(...shuffledPool.slice(0, 3));
+            
+            return shuffleArray(options); 
+        }
+
+        function renderOptionButtons(optionTexts) {
+            const buttons = document.querySelectorAll(".option-btn");
+            buttons.forEach((btn, index) => {
+                btn.className = "option-btn p-3.5 sm:p-4 bg-slate-800/60 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 active:scale-95 text-left rounded-xl transition-all font-semibold flex items-center justify-between text-xs sm:text-sm md:text-base min-h-[52px]";
+                btn.disabled = false;
+                
+                const textSpan = btn.querySelector(".option-text");
+                textSpan.innerText = optionTexts[index];
+            });
         }
 
         // ================= 12. 智慧型單字時態挖空演算法 =================
