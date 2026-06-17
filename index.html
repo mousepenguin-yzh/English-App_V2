@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國中英文單字總複習互動系統</title>
+    <!-- 引入 Tailwind CSS 進行現代化響應式排版 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+        
+        body {
+            font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+        }
+
+        /* 答錯時的震動動畫 */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .shake-element {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* 答對時的綠色發光動畫 */
+        @keyframes correct-glow {
+            0%, 100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0); }
+            50% { box-shadow: 0 0 20px 8px rgba(16, 185, 129, 0.6); }
+        }
+        .correct-glow-element {
+            animation: correct-glow 0.6s ease-in-out;
+        }
+
+        /* 徹底修正 iOS/Safari 鏡像與翻牌失敗問題 */
+        .perspective-1000 {
+            perspective: 1000px;
+            -webkit-perspective: 1000px;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-transition: -webkit-transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+        }
+        .card-flipped {
+            transform: rotateY(180deg);
+            -webkit-transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 1.5rem; /* rounded-3xl */
+            border: 1px solid rgba(51, 65, 85, 1); /* slate-700 */
+        }
+        .card-front {
+            z-index: 2;
+            transform: rotateY(0deg);
+            -webkit-transform: rotateY(0deg);
+        }
+        .card-back {
+            transform: rotateY(180deg);
+            -webkit-transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950">
+
+    <!-- 頂部導覽列 -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-tr from-teal-500 to-indigo-600 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-lg shadow-teal-500/20">
+                    A⁺
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg md:text-xl tracking-wide bg-gradient-to-r from-teal-400 to-indigo-400 bg-clip-text text-transparent">阿晴的英文大冒險</h1>
+                    <p class="text-xs text-slate-400">國中英文單字總複習互動系統</p>
+                </div>
+            </div>
+            
+            <!-- 工具選單 (靜音切換、重新載入) -->
+            <div class="flex items-center gap-3">
+                <button id="muteBtn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-sm" onclick="toggleMute()">
+                    <span id="soundIcon" class="inline-block">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.69-3.69a1 1 0 011.107-.234zM11 10a3 3 0 01-3 3v2a5 5 0 005-5H11z" clip-rule="evenodd"/>
+                            <path d="M13 10a5 5 0 01-5 5v2a7 7 0 007-7h-2z"/>
+                        </svg>
+                    </span>
+                    <span id="soundText" class="hidden sm:inline">語音與音效已開啟</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden min-h-[500px] flex flex-col justify-between relative">
+            
+            <!-- 背景裝飾微光 -->
+            <div class="absolute -top-40 -left-40 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- === 畫面 0：加載中提示 === -->
+            <div id="screenLoading" class="flex-grow flex flex-col items-center justify-center p-8 text-center">
+                <div class="relative w-24 h-24 mb-6">
+                    <div class="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-teal-400 border-t-transparent animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center text-teal-400 font-bold text-2xl">📚</div>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-100 mb-2">正在加載單字庫...</h3>
+                <div class="text-slate-400 text-sm max-w-md mx-auto" id="loadingMessage">系統正在與本地調試環境建立連接。</div>
+                <div id="fallbackBtnContainer" class="mt-6 hidden">
+                    <button class="px-6 py-3 bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 rounded-xl font-bold shadow-lg shadow-teal-500/20 active:scale-95 transition-all text-sm" onclick="loadDefaultDatabase()">
+                        ⚡ 立即啟用內建單字庫
+                    </button>
+                </div>
+            </div>
+
+            <!-- === 畫面 1：設定模式與範圍 === -->
+            <div id="screenSetup" class="hidden flex-grow flex flex-col justify-between p-4 sm:p-6 md:p-8">
+                <div>
+                    <!-- 雲端同步狀態監視器 -->
+                    <div class="text-center mb-6 md:mb-8">
+                        <div id="syncStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-4 border transition-all duration-300">
+                            <!-- JS 動態注入連線狀態 -->
+                        </div>
+                        <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-white">啟動英文挑戰旅程！</h2>
+                        <p class="text-slate-400 text-xs sm:text-sm mt-1">請選擇今天想挑戰的模式與單字範圍</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                        <!-- 左側：模式選擇 -->
+                        <div class="space-y-3 sm:space-y-4">
+                            <h3 class="text-xs sm:text-sm font-bold text-slate-400 tracking-wider uppercase mb-2">💡 1. 選擇學習模式</h3>
+                            
+                            <!-- 模式 1 -->
+                            <label class="block cursor-pointer group">
+                                <input type="radio" name="mode" value="flashcard" checked class="sr-only peer" onchange="handleModeChange()">
+                                <div class="p-3 sm:p-4 bg-slate-800/50 border border-slate-800 rounded-2xl peer-checked:border-teal-400 peer-checked:bg-teal-500/5 group-hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">📇</div>
+                                        <div>
+                                            <p class="font-bold text-sm sm:text-base text-slate-200">單字卡輕鬆瀏覽</p>
+                                            <p class="text-[11px] sm:text-xs text-slate-400">零壓力查看單字、三態、聽發音並閱讀中英例句</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <!-- 模式 2 -->
+                            <label class="block cursor-pointer group">
+                                <input type="radio" name="mode" value="en-ch" class="sr-only peer" onchange="handleModeChange()">
+                                <div class="p-3 sm:p-4 bg-slate-800/50 border border-slate-800 rounded-2xl peer-checked:border-teal-400 peer-checked:bg-teal-500/5 group-hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">🇬🇧</div>
+                                        <div>
+                                            <p class="font-bold text-sm sm:text-base text-slate-200">英選中 挑戰賽</p>
+                                            <p class="text-[11px] sm:text-xs text-slate-400">看英文單字，選出正確的中文意思與詞性</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <!-- 模式 3 -->
+                            <label class="block cursor-pointer group">
+                                <input type="radio" name="mode" value="ch-en" class="sr-only peer" onchange="handleModeChange()">
+                                <div class="p-3 sm:p-4 bg-slate-800/50 border border-slate-800 rounded-2xl peer-checked:border-teal-400 peer-checked:bg-teal-500/5 group-hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">🇹🇼</div>
+                                        <div>
+                                            <p class="font-bold text-sm sm:text-base text-slate-200">中選英 挑戰賽</p>
+                                            <p class="text-[11px] sm:text-xs text-slate-400">看中文意思，拼湊出最適合的英文單字</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <!-- 模式 4 -->
+                            <label class="block cursor-pointer group">
+                                <input type="radio" name="mode" value="cloze" class="sr-only peer" onchange="handleModeChange()">
+                                <div class="p-3 sm:p-4 bg-slate-800/50 border border-slate-800 rounded-2xl peer-checked:border-teal-400 peer-checked:bg-teal-500/5 group-hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">📝</div>
+                                        <div>
+                                            <p class="font-bold text-sm sm:text-base text-slate-200">例句克漏字大考驗</p>
+                                            <p class="text-[11px] sm:text-xs text-amber-400">適合高年級！自動鎖定並限用 B5、B6、高階單字範圍 (自動過濾片語)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- 右側：範圍與題數 -->
+                        <div class="space-y-5 md:space-y-6">
+                            <!-- 範圍選擇 -->
+                            <div>
+                                <h3 class="text-xs sm:text-sm font-bold text-slate-400 tracking-wider uppercase mb-3 flex justify-between items-center">
+                                    <span>📚 2. 選擇冊別範圍 (可多選)</span>
+                                    <div class="flex items-center gap-4">
+                                        <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-teal-400 hover:text-teal-300">
+                                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" class="w-3.5 h-3.5 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                            <span>全選</span>
+                                        </label>
+                                        <span id="clozeNotice" class="text-[10px] sm:text-xs text-amber-400 font-normal hidden">⚠️ 克漏字僅限高階範圍</span>
+                                    </div>
+                                </h3>
+                                <div class="grid grid-cols-2 gap-2 sm:gap-3" id="levelGrid">
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="B1" checked class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-semibold">第一冊 (B1)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="B2" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-semibold">第二冊 (B2)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="B3" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-semibold">第三冊 (B3)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="B4" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-semibold">第四冊 (B4)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="B5" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-semibold text-indigo-300">第五冊 (B5)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="B6" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-semibold text-indigo-300">第六冊 (B6)</span>
+                                    </label>
+                                    <!-- 🌟 核心修正：將 checkbox value 與 Google Sheet 真實 level 值 ("等級 1" ~ "等級 4") 完美對齊 -->
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="等級 1" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV1</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="等級 2" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV2</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="等級 3" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV3</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
+                                        <input type="checkbox" name="level" value="等級 4" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
+                                        <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV4</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 題數選擇 -->
+                            <div id="questionCountContainer">
+                                <h3 class="text-xs sm:text-sm font-bold text-slate-400 tracking-wider uppercase mb-3">🎯 3. 挑戰題數</h3>
+                                <div class="flex gap-2 sm:gap-4">
+                                    <label class="flex-1 text-center cursor-pointer">
+                                        <input type="radio" name="limit" value="20" checked class="sr-only peer">
+                                        <div class="py-2.5 sm:py-3 bg-slate-800/50 border border-slate-800 rounded-xl peer-checked:border-teal-400 peer-checked:bg-teal-500/10 font-bold text-sm sm:text-base text-slate-200 hover:bg-slate-800 transition-all">20 題</div>
+                                    </label>
+                                    <label class="flex-1 text-center cursor-pointer">
+                                        <input type="radio" name="limit" value="30" class="sr-only peer">
+                                        <div class="py-2.5 sm:py-3 bg-slate-800/50 border border-slate-800 rounded-xl peer-checked:border-teal-400 peer-checked:bg-teal-500/10 font-bold text-sm sm:text-base text-slate-200 hover:bg-slate-800 transition-all">30 題</div>
+                                    </label>
+                                    <label class="flex-1 text-center cursor-pointer">
+                                        <input type="radio" name="limit" value="50" class="sr-only peer">
+                                        <div class="py-2.5 sm:py-3 bg-slate-800/50 border border-slate-800 rounded-xl peer-checked:border-teal-400 peer-checked:bg-teal-500/10 font-bold text-sm sm:text-base text-slate-200 hover:bg-slate-800 transition-all">50 題</div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 開始按鈕 -->
+                <div class="mt-6 md:mt-8 border-t border-slate-800 pt-5 md:pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="text-slate-400 text-xs sm:text-sm flex items-center gap-2">
+                        <span>🎯 當前篩選出的單字池總量：</span>
+                        <strong id="wordPoolCount" class="text-teal-400 text-base sm:text-lg">0</strong> 個
+                    </div>
+                    <button class="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-gradient-to-r from-teal-500 via-indigo-600 to-indigo-700 hover:from-teal-400 hover:to-indigo-500 text-white font-black rounded-2xl shadow-xl shadow-teal-500/10 active:scale-95 transition-all flex items-center justify-center gap-2 text-base sm:text-lg" onclick="startAdventure()">
+                        🚀 開始冒險！
+                    </button>
+                </div>
+            </div>
+
+            <!-- === 畫面 2A：單字卡瀏覽 === -->
+            <div id="screenFlashcard" class="hidden flex-grow flex flex-col justify-between p-4 sm:p-6">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4 sm:mb-6">
+                    <div class="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
+                        <span class="px-2 py-0.5 bg-slate-800 rounded-md font-mono" id="fcIndex">1/20</span>
+                        <span>單字卡瀏覽模式</span>
+                    </div>
+                    <button class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs transition-colors flex items-center gap-1" onclick="exitToSetup()">
+                        ↩️ 回到選單
+                    </button>
+                </div>
+
+                <!-- 單字卡核心元件 -->
+                <div class="flex-grow flex items-center justify-center my-2 sm:my-4">
+                    <div class="w-full max-w-xl h-[330px] sm:h-[350px] md:h-[380px] perspective-1000 cursor-pointer" onclick="flipCard()">
+                        <div id="fcCardInner" class="card-inner">
+                            
+                            <!-- 卡片正面 -->
+                            <div class="card-front bg-gradient-to-br from-slate-800 to-slate-900/90 border border-slate-800 p-5 sm:p-8 flex flex-col justify-between">
+                                <div class="flex justify-between items-center">
+                                    <span class="px-3 py-1 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-full text-xs font-semibold" id="fcLevel">B5</span>
+                                    <button class="p-2 sm:p-3 bg-slate-850/80 hover:bg-teal-500/20 text-slate-300 hover:text-teal-400 rounded-full transition-all hover:scale-110 active:scale-90" onclick="speakCurrentWord(event)">
+                                        📢 發音
+                                    </button>
+                                </div>
+                                <div class="text-center my-auto">
+                                    <h1 class="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white select-text mb-2" id="fcWord">experience</h1>
+                                    <p class="text-slate-400 text-xs sm:text-sm font-medium italic" id="fcPOS">[n. / v.]</p>
+                                    <!-- 動詞三態直接在卡片正面顯現 -->
+                                    <p id="fcFrontThreeForms" class="text-indigo-300 text-[11px] sm:text-xs mt-3 font-semibold font-mono hidden"></p>
+                                </div>
+                                <div class="text-center text-[11px] text-slate-500">
+                                    💡 點擊卡片任何地方，即可翻看中文與例句
+                                </div>
+                            </div>
+
+                            <!-- 卡片反面 -->
+                            <div class="card-back bg-slate-850 border border-slate-800 p-4 sm:p-6 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-center border-b border-slate-800/60 pb-2 mb-2 sm:mb-3">
+                                        <span class="text-[10px] sm:text-xs text-slate-400">中文釋義 & 語境</span>
+                                        <span class="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 rounded text-[10px] sm:text-xs animate-pulse" id="fcThreeForms">動詞三態: ...</span>
+                                    </div>
+                                    <div class="my-3 sm:my-4">
+                                        <h2 class="text-2xl sm:text-3xl md:text-4xl font-black text-teal-300 tracking-wide leading-tight" id="fcTranslation">經驗；體驗</h2>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-800/40 text-left overflow-y-auto max-h-[140px] sm:max-h-[160px]">
+                                    <p class="text-sm sm:text-base md:text-lg text-indigo-200 font-semibold leading-relaxed" id="fcExampleEn">We had a wonderful experience traveling around the island.</p>
+                                    <p class="text-xs sm:text-sm md:text-base text-slate-300 mt-2 font-medium leading-relaxed" id="fcExampleCh">我們在環島旅行中獲得了美妙的體驗。</p>
+                                </div>
+
+                                <div class="text-center text-[11px] text-slate-500">
+                                    🔄 點擊卡片任意處可翻回正面
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 導覽控制器 (觸控按鈕加高) -->
+                <div class="flex justify-between items-center gap-3 sm:gap-4 mt-4 sm:mt-6">
+                    <button class="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl active:scale-95 transition-all text-xs sm:text-sm flex items-center justify-center gap-1" onclick="prevFlashcard()">
+                        ◀️ 上一個
+                    </button>
+                    <button class="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl active:scale-95 transition-all text-xs sm:text-sm flex items-center justify-center gap-1" onclick="nextFlashcard()">
+                        下一個 ▶️
+                    </button>
+                </div>
+            </div>
+
+            <!-- === 畫面 2B：四選一 / 克漏字 測驗系統 === -->
+            <div id="screenQuiz" class="hidden flex-grow flex flex-col justify-between p-4 sm:p-6">
+                <!-- 測驗頂部欄 -->
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-3 sm:mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] sm:text-xs px-2.5 py-1 bg-indigo-500/10 text-indigo-300 rounded-full font-bold" id="quizModeBadge">英選中</span>
+                        <span class="text-[11px] sm:text-xs text-slate-400">目前剩餘：<strong class="text-teal-400" id="quizQueueCount">0</strong> 題</span>
+                    </div>
+                    <button class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs transition-colors" onclick="confirmExit()">
+                        ↩️ 返回首頁
+                    </button>
+                </div>
+
+                <!-- 總體進度條 -->
+                <div class="w-full bg-slate-800 h-1.5 sm:h-2 rounded-full overflow-hidden mb-4 sm:mb-6 relative">
+                    <div id="quizProgressBar" class="h-full bg-gradient-to-r from-teal-400 to-indigo-500 w-0 transition-all duration-300"></div>
+                </div>
+
+                <!-- 測驗主卡片區 -->
+                <div id="quizContentArea" class="flex-grow flex flex-col justify-center my-auto">
+                    <!-- 問題框 -->
+                    <div class="bg-slate-850 border border-slate-800 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 relative overflow-hidden">
+                        <!-- 喇叭發音按鈕 -->
+                        <div class="absolute right-3 top-3">
+                            <button id="quizSpeakBtn" class="p-2 bg-slate-800 hover:bg-teal-500/20 text-slate-300 hover:text-teal-400 rounded-full transition-all active:scale-90" onclick="speakQuizWord()">
+                                📢
+                            </button>
+                        </div>
+
+                        <!-- 題目渲染 -->
+                        <div id="questionContainer" class="text-center py-2 sm:py-4">
+                            <span class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider" id="questionLevel">B5 • v.</span>
+                            <h2 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white mt-1 mb-2 break-words leading-relaxed" id="questionText">experience</h2>
+                            
+                            <!-- 精緻克漏字翻譯提示區 -->
+                            <div id="clozeTipContainer" class="hidden mt-3 mb-2">
+                                <button id="toggleTranslationBtn" class="mx-auto px-4 py-2 bg-slate-800/80 hover:bg-indigo-900/40 border border-slate-700 hover:border-indigo-500/40 active:scale-95 text-slate-300 hover:text-indigo-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5" onclick="toggleClozeTranslation()">
+                                    💡 顯示中文提示
+                                </button>
+                            </div>
+                            <p class="text-slate-400 text-xs sm:text-sm mt-3 hidden px-2 transition-all duration-300" id="questionTranslation">中文提示：我們在環島旅行中獲得了美妙的體驗。</p>
+                        </div>
+                    </div>
+
+                    <!-- 答對/答錯 即時解析資訊板 -->
+                    <div id="feedbackBoard" class="hidden bg-slate-800/90 border-2 border-red-500/30 rounded-2xl p-4 sm:p-5 mb-4 sm:mb-6 text-left max-h-[360px] overflow-y-auto">
+                        <div class="flex items-center gap-2 mb-3 text-red-400 font-black text-sm sm:text-base">
+                            ❌ 答錯囉！這題待會再考一次！
+                        </div>
+                        <div class="space-y-2">
+                            <div>
+                                <span class="text-xs text-slate-400">正確答案：</span>
+                                <span class="text-lg sm:text-xl font-extrabold text-teal-300" id="feedbackCorrectWord">word</span>
+                                <span class="text-xs sm:text-sm text-slate-300 ml-2" id="feedbackTranslation">(詞性) 翻譯</span>
+                            </div>
+                            <div id="feedbackThreeFormsContainer" class="text-xs sm:text-sm text-indigo-300">
+                                動詞三態：<span class="font-mono" id="feedbackThreeForms">...</span>
+                            </div>
+                            <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800/40 text-left mt-2">
+                                <p class="text-xs sm:text-sm text-slate-200" id="feedbackExampleEn">Example sentence here...</p>
+                                <p class="text-[11px] sm:text-xs text-slate-400 mt-1" id="feedbackExampleCh">中文翻譯例句...</p>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl transition-all shadow-lg shadow-indigo-600/20 text-xs sm:text-sm" onclick="proceedAfterFeedback()">
+                            💪 已學起來，繼續下一題！
+                        </button>
+                    </div>
+
+                    <!-- 選項按鈕區 (四選一) -->
+                    <div id="optionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <button class="option-btn p-3.5 sm:p-4 bg-slate-800/60 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 active:scale-95 text-left rounded-xl transition-all font-semibold flex items-center justify-between text-xs sm:text-sm md:text-base min-h-[52px]" onclick="checkAnswer(0)">
+                            <span class="option-text text-slate-200">選項 A</span>
+                            <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[10px] sm:text-xs font-mono shrink-0 ml-2">1</span>
+                        </button>
+                        <button class="option-btn p-3.5 sm:p-4 bg-slate-800/60 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 active:scale-95 text-left rounded-xl transition-all font-semibold flex items-center justify-between text-xs sm:text-sm md:text-base min-h-[52px]" onclick="checkAnswer(1)">
+                            <span class="option-text text-slate-200">選項 B</span>
+                            <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[10px] sm:text-xs font-mono shrink-0 ml-2">2</span>
+                        </button>
+                        <button class="option-btn p-3.5 sm:p-4 bg-slate-800/60 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 active:scale-95 text-left rounded-xl transition-all font-semibold flex items-center justify-between text-xs sm:text-sm md:text-base min-h-[52px]" onclick="checkAnswer(2)">
+                            <span class="option-text text-slate-200">選項 C</span>
+                            <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[10px] sm:text-xs font-mono shrink-0 ml-2">3</span>
+                        </button>
+                        <button class="option-btn p-3.5 sm:p-4 bg-slate-800/60 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 active:scale-95 text-left rounded-xl transition-all font-semibold flex items-center justify-between text-xs sm:text-sm md:text-base min-h-[52px]" onclick="checkAnswer(3)">
+                            <span class="option-text text-slate-200">選項 D</span>
+                            <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[10px] sm:text-xs font-mono shrink-0 ml-2">4</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- === 畫面 3：雙軌計分大結算 === -->
+            <div id="screenSummary" class="hidden flex-grow flex flex-col justify-between p-4 sm:p-6 md:p-8">
+                <div class="text-center mb-4 sm:mb-6">
+                    <span class="px-3 py-1 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-full text-[10px] sm:text-xs font-semibold tracking-wider">CHALLENGE COMPLETE</span>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white mt-3" id="summaryTitle">恭喜完成挑戰！🎉</h2>
+                    <p class="text-slate-400 text-xs sm:text-sm mt-1">寶貝，妳堅持完成了所有的困難單字，真是不簡單！</p>
+                </div>
+
+                <!-- 雙軌數據看板 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 my-4 sm:my-6">
+                    <!-- 指標一：初始正確率 -->
+                    <div class="bg-gradient-to-b from-slate-800/80 to-slate-900/40 border border-slate-800 rounded-2xl p-4 sm:p-6 text-center flex flex-col items-center justify-center relative overflow-hidden">
+                        <div class="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl"></div>
+                        <span class="text-[10px] sm:text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">🎯 第一波初始正確率</span>
+                        <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-8 border-slate-850 flex items-center justify-center relative mb-3">
+                            <span class="text-2xl sm:text-3xl font-black text-emerald-400" id="initialAccuracyScore">0%</span>
+                        </div>
+                        <p class="text-slate-300 text-xs sm:text-sm font-semibold">首戰得分</p>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-1 max-w-[200px] leading-relaxed">僅統計每個單字「第一次」回答的對錯表現。</p>
+                    </div>
+
+                    <!-- 指標二：清空難題的總戰鬥力 -->
+                    <div class="bg-gradient-to-b from-slate-800/80 to-slate-900/40 border border-slate-800 rounded-2xl p-4 sm:p-6 text-center flex flex-col items-center justify-center relative overflow-hidden">
+                        <div class="absolute -top-10 -right-10 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                        <span class="text-[10px] sm:text-xs text-indigo-400 font-bold uppercase tracking-wider mb-2">🔥 奮戰到最後的毅力</span>
+                        <div class="text-4xl sm:text-5xl font-black text-indigo-400 my-4 sm:my-6" id="totalAttemptsValue">0 次</div>
+                        <p class="text-slate-300 text-xs sm:text-sm font-semibold">總計作答次數</p>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-1 max-w-[200px] leading-relaxed">包含重新練習錯題，妳沒有放棄任何一題！</p>
+                    </div>
+                </div>
+
+                <!-- 毅力表揚標語 -->
+                <div class="p-3 sm:p-4 bg-slate-800/40 border border-slate-800 rounded-xl text-center mb-6">
+                    <p class="text-xs sm:text-sm font-medium text-amber-300" id="perseveranceBanner">
+                        🌟 太強了！每一次錯題重試都是大腦在進步的證明。阿晴，妳擁有無與倫比的毅力！
+                    </p>
+                </div>
+
+                <!-- 控制鈕 -->
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 border-t border-slate-800 pt-5 sm:pt-6">
+                    <button class="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl active:scale-95 transition-all text-xs sm:text-sm" onclick="exitToSetup()">
+                        ↩️ 調整範圍，重新挑戰
+                    </button>
+                    <button class="flex-1 py-3.5 bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-extrabold rounded-xl shadow-lg shadow-teal-500/20 active:scale-95 transition-all text-xs sm:text-sm" onclick="restartSameAdventure()">
+                        🔄 使用相同設定再挑戰一次
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 頁尾宣告 -->
+    <footer class="py-4 text-center text-xs text-slate-600 border-t border-slate-900 bg-slate-950">
+        <p>© 2026 國中英文單字總複習互動系統 • 專為引導孩子建立信心而生</p>
+    </footer>
+
+    <!-- 五彩紙屑（Confetti）專用全螢幕 Canvas -->
+    <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-[100] w-full h-full hidden"></canvas>
+
+    <!-- ================= JavaScript 核心控制邏輯 ================= -->
+    <script>
+        // ================= 1. 本地調試用高規格備援資料 (對齊真實 "等級 1" ~ "等級 4" 欄位) =================
+        const VOCAB_DATA = [
+            { word: "look for", past_tense: "looked for", past_participle: "looked for", part_of_speech: "v. phr.", translation: "尋找", level: "B1", example_en: "I am looking for my keys; have you seen them anywhere?", example_ch: "我正在尋找我的鑰匙；你有在任何地方看到它們嗎？" },
+            { word: "delicious", past_tense: "", past_participle: "", part_of_speech: "adj.", translation: "美味的", level: "B1", example_en: "My grandmother baked a delicious apple pie for dessert.", example_ch: "我祖母烤了一款極為美味的蘋果派作為甜點。" },
+            { word: "take care of", past_tense: "took care of", past_participle: "taken care of", part_of_speech: "v. phr.", translation: "照顧；處理", level: "B2", example_en: "She promised to take care of her little sister this weekend.", example_ch: "她承諾這週末會好好照顧她的妹妹。" },
+            { word: "get along with", past_tense: "got along with", past_participle: "gotten along with", part_of_speech: "v. phr.", translation: "與...相處融洽", level: "B3", example_en: "He works hard and gets along with all his classmates in school.", example_ch: "他在學校學習刻苦，並且與所有的同班同學相處融洽。" },
+            { word: "run out of", past_tense: "ran out of", past_participle: "run out of", part_of_speech: "v. phr.", translation: "用盡；耗盡", level: "B4", example_en: "We had to stop at the gas station because we ran out of gas.", example_ch: "因為我們的汽油耗盡了，我們不得不停在加油站。" },
+            { word: "be filled with", past_tense: "was filled with", past_participle: "been filled with", part_of_speech: "v. phr.", translation: "充滿", level: "B5", example_en: "The bottle was filled with fresh water after he washed it.", example_ch: "在他清洗瓶子之後，瓶子裡裝滿了新鮮的水。" },
+            { word: "experience", past_tense: "experienced", past_participle: "experienced", part_of_speech: "n. / v.", translation: "經驗；體驗", level: "B5", example_en: "We had a wonderful experience traveling around the island.", example_ch: "我們在環島旅行中獲得了美妙的體驗。" },
+            { word: "make up for", past_tense: "made up for", past_participle: "made up for", part_of_speech: "v. phr.", translation: "彌補；補償", level: "B6", example_en: "Nothing can make up for the loss of a close and loyal friend.", example_ch: "沒有任何事物能夠彌補失去一位親密且忠實的朋友的遺憾。" },
+            { word: "put up with", past_tense: "put up with", past_participle: "put up with", part_of_speech: "v. phr.", translation: "忍受；容忍", level: "等級 1", example_en: "I cannot put up with your constant complaints and negative attitude anymore.", example_ch: "我再也無法忍受你無休止的抱怨和消極的態度了。" },
+            { word: "opportunity", past_tense: "", past_participle: "", part_of_speech: "n.", translation: "機會", level: "等級 3", example_en: "You should take every opportunity to practice speaking English.", example_ch: "妳應該抓住每一次的機會來練習開口說英語。" }
+        ];
+
+        // 雲端同步連結：已完全接回
+        const SPREADSHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQftdYi4gct5e5h3-JT1SIJU2lZ97d1Duc48SgppKRMiHzSu6aFR2kC5YyZOgFVIPkulV70O91GA_Ct/pub?output=csv";
+
+        // ================= 2. 系統預設精選題庫 =================
+        const DEFAULT_DATABASE = [...VOCAB_DATA];
+
+        // ================= 3. 遊戲化 Web Audio API 音效合成器 =================
+        class SoundSynth {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playCorrect() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, index) => {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + index * 0.08);
+                    
+                    gain.gain.setValueAtTime(0.12, now + index * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.3);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + index * 0.08);
+                    osc.stop(now + index * 0.08 + 0.3);
+                });
+            }
+            playWrong() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(185.00, now);
+                osc.frequency.linearRampToValueAtTime(130.81, now + 0.25);
+                
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+            playSuccess() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, index) => {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + index * 0.07);
+                    
+                    const duration = (index === notes.length - 1) ? 0.9 : 0.25;
+                    gain.gain.setValueAtTime(0.12, now + index * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.07 + duration);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + index * 0.07);
+                    osc.stop(now + index * 0.07 + duration);
+                });
+            }
+        }
+        const sfx = new SoundSynth();
+
+        function toggleMute() {
+            sfx.muted = !sfx.muted;
+            const btn = document.getElementById("muteBtn");
+            const icon = document.getElementById("soundIcon");
+            const text = document.getElementById("soundText");
+            
+            if (sfx.muted) {
+                btn.className = "p-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-500/20 transition-all flex items-center gap-1.5 text-sm";
+                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M13.414 10l3.293-3.293a1 1 0 111.414 1.414L14.828 10l3.293 3.293a1 1 0 01-1.414 1.414L13.414 10zM10.586 10L7.293 6.707a1 1 0 00-1.414 1.414L9.172 10l-3.293 3.293a1 1 0 101.414 1.414L10.586 10z" clip-rule="evenodd"/>
+                    <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.69-3.69a1 1 0 011.107-.234z" clip-rule="evenodd"/>
+                </svg>`;
+                text.innerText = "語音與音效已靜音";
+            } else {
+                btn.className = "p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-sm";
+                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.69-3.69a1 1 0 011.107-.234zM11 10a3 3 0 01-3 3v2a5 5 0 005-5H11z" clip-rule="evenodd"/>
+                    <path d="M13 10a5 5 0 01-5 5v2a7 7 0 007-7h-2z"/>
+                </svg>`;
+                text.innerText = "語音與音效已開啟";
+            }
+        }
+
+        // ================= 4. 全域變數狀態 =================
+        let database = [];          
+        let selectedWords = [];      
+        let quizQueue = [];         
+        let originalQuizCount = 0;   
+        let currentQuizIndex = 0;    
+        let quizHistory = {};       
+        let currentMode = "flashcard"; 
+        
+        let quizTotalAttemptsCount = 0; 
+        let firstAttemptCorrectCount = 0; 
+        let isWaitingFeedback = false;  
+        let isUsingFallback = false; 
+        
+        // 🌟 溫馨雙語心靈小語 (通用版)
+        const MOTIVATIONAL_QUOTES = [
+            { en: "Believe in yourself and you will be unstoppable!", ch: "相信自己，你將會無所畏懼、勇往直前！" },
+            { en: "Every small step counts. Keep up the great work!", ch: "每一步微小的累積都很重要。繼續加油！" },
+            { en: "Mistakes are proof that you are trying so hard.", ch: "每一次的失誤，都是你正全力大步邁進的證明。" },
+            { en: "Your effort today will make you proud of yourself tomorrow.", ch: "你今天的努力，絕對會讓明天的你感到無比驕傲！" },
+            { en: "Little by little, you will travel very far in life.", ch: "一步接著一步慢慢前行，你終能看見更寬廣的世界。" },
+            { en: "Learning is a treasure that will follow you everywhere.", ch: "知識是一份無形的寶藏，會永遠溫柔地陪伴著你。" },
+            { en: "Great things take time. You are doing amazing!", ch: "美好的事物都需要時間釀造，你已經做得很棒了！" },
+            { en: "Progress, not perfection. Keep shining, brave learner!", ch: "每一次的前進就是進步，不需完美。繼續閃閃發光吧！" }
+        ];
+
+        function getMotivationalQuote(word) {
+            const hash = Math.abs(word.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0));
+            return MOTIVATIONAL_QUOTES[hash % MOTIVATIONAL_QUOTES.length];
+        }
+
+        function showToast(msg) {
+            let toast = document.createElement("div");
+            toast.className = "fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/95 border border-amber-500/30 text-amber-300 px-6 py-3.5 rounded-2xl shadow-2xl z-[150] transition-all duration-300 font-bold text-sm max-w-sm text-center backdrop-blur-md";
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add("opacity-0");
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ================= 5. 資料初始化與載入 =================
+        window.onload = function() {
+            // 自動偵測並啟動雲端 fetch() 聯網載入，本機伺服器調試時可完美連通解鎖
+            if (SPREADSHEET_CSV_URL && SPREADSHEET_CSV_URL.trim() !== "" && SPREADSHEET_CSV_URL !== "這裡留空，我後續會填入 Google Sheets 發布為 CSV 的網址") {
+                fetchCSVData(SPREADSHEET_CSV_URL);
+            } else {
+                isUsingFallback = true; 
+                loadDefaultDatabase();
+            }
+            
+            document.querySelectorAll('input[name="level"]').forEach(el => {
+                el.addEventListener('change', updatePoolCount);
+            });
+        };
+
+        async function fetchCSVData(url) {
+            let fetchCompleted = false;
+            
+            // 2.5 秒超時安全降級機制，防止因為網絡卡死導致白屏
+            const timeoutId = setTimeout(() => {
+                if (!fetchCompleted) {
+                    console.warn("雲端載入超時，自動啟動無縫備援題庫...");
+                    isUsingFallback = true;
+                    loadDefaultDatabase();
+                }
+            }, 2500);
+
+            try {
+                const response = await fetch(url);
+                fetchCompleted = true;
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) throw new Error(`HTTP 連結不成功 (狀態碼: ${response.status})`);
+                const text = await response.text();
+                const parsed = parseCSVToArray(text);
+                if (parsed && parsed.length > 0) {
+                    database = parsed;
+                    isUsingFallback = false;
+                    loadSuccess();
+                } else {
+                    throw new Error("CSV 資料解析成功，但無有效欄位");
+                }
+            } catch (error) {
+                fetchCompleted = true;
+                clearTimeout(timeoutId);
+                console.warn("安全沙箱或 CORS 政策限制雲端載入，啟動無縫備援題庫：", error);
+                isUsingFallback = true;
+                loadDefaultDatabase();
+            }
+        }
+
+        function loadDefaultDatabase() {
+            database = JSON.parse(JSON.stringify(DEFAULT_DATABASE));
+            isUsingFallback = true;
+            loadSuccess();
+        }
+
+        function parseCSVToArray(text) {
+            let p = '', r = [];
+            let q = false;
+            let row = [''];
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i];
+                let next = text[i+1];
+                if (c === '"') {
+                    if (q && next === '"') { row[row.length - 1] += '"'; i++; }
+                    else { q = !q; }
+                } else if (c === ',' && !q) {
+                    row.push('');
+                } else if ((c === '\r' || c === '\n') && !q) {
+                    if (c === '\r' && next === '\n') { i++; }
+                    r.push(row);
+                    row = [''];
+                } else {
+                    row[row.length - 1] += c;
+                }
+            }
+            if (row.length > 1 || row[0] !== '') { r.push(row); }
+            if (r.length < 2) return [];
+
+            const headers = r[0].map(h => h.trim().toLowerCase());
+            const parsedData = [];
+            for (let i = 1; i < r.length; i++) {
+                const rowData = r[i];
+                if (rowData.length < headers.length) continue;
+                let obj = {};
+                headers.forEach((h, idx) => {
+                    obj[h] = rowData[idx] ? rowData[idx].trim() : '';
+                });
+                if (obj.word) {
+                    parsedData.push(obj);
+                }
+            }
+            return parsedData;
+        }
+
+        function loadSuccess() {
+            document.getElementById("screenLoading").classList.add("hidden");
+            document.getElementById("screenSetup").classList.remove("hidden");
+            
+            const badge = document.getElementById("syncStatusBadge");
+            if (isUsingFallback) {
+                badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold mb-4 border border-amber-500/20 bg-amber-500/10 text-amber-400";
+                badge.innerHTML = `
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>已啟用內建單字庫 (如需同步 Google Sheets，請在本機架設本地伺服器測試)</span>
+                `;
+            } else {
+                badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold mb-4 border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-md shadow-emerald-500/5";
+                badge.innerHTML = `
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span>🟢 成功與 Google Sheets 雲端題庫即時同步！</span>
+                `;
+            }
+            
+            updatePoolCount();
+        }
+
+        // ================= 6. 輔助多選與狀態同步 =================
+        function toggleSelectAll(source) {
+            const checkboxes = document.querySelectorAll('input[name="level"]');
+            checkboxes.forEach(cb => {
+                if (!cb.disabled) {
+                    cb.checked = source.checked;
+                }
+            });
+            updatePoolCount();
+        }
+
+        function syncSelectAllState() {
+            const checkboxes = Array.from(document.querySelectorAll('input[name="level"]'));
+            const enabledCheckboxes = checkboxes.filter(cb => !cb.disabled);
+            const checkedEnabled = enabledCheckboxes.filter(cb => cb.checked);
+            const selectAllBox = document.getElementById("selectAllCheckbox");
+            
+            if (enabledCheckboxes.length > 0 && checkedEnabled.length === enabledCheckboxes.length) {
+                selectAllBox.checked = true;
+            } else {
+                selectAllBox.checked = false;
+            }
+        }
+
+        function updatePoolCount() {
+            syncSelectAllState();
+            const levels = getSelectedLevels();
+            let filtered = database.filter(item => levels.includes(item.level));
+            
+            // 🌟 核心規則：如果目前是「克漏字模式」，在底層直接、徹底過濾掉片語 (Phrases)
+            const selectedMode = document.querySelector('input[name="mode"]:checked')?.value || currentMode;
+            if (selectedMode === "cloze") {
+                filtered = filtered.filter(item => {
+                    const isPhrase = item.word.trim().includes(" ") || 
+                                     (item.part_of_speech && item.part_of_speech.toLowerCase().includes("phr"));
+                    return !isPhrase; // 只保留單一單字，百分之百排除片語
+                });
+            }
+            
+            selectedWords = filtered;
+            document.getElementById("wordPoolCount").innerText = selectedWords.length;
+        }
+
+        function getSelectedLevels() {
+            const checked = [];
+            document.querySelectorAll('input[name="level"]:checked').forEach(el => {
+                checked.push(el.value);
+            });
+            return checked;
+        }
+
+        // ================= 7. 模式切換與特殊鎖定 =================
+        function handleModeChange() {
+            const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+            currentMode = selectedMode;
+            
+            const b1 = document.querySelector('input[name="level"][value="B1"]');
+            const b2 = document.querySelector('input[name="level"][value="B2"]');
+            const b3 = document.querySelector('input[name="level"][value="B3"]');
+            const b4 = document.querySelector('input[name="level"][value="B4"]');
+            const b5 = document.querySelector('input[name="level"][value="B5"]');
+            const b6 = document.querySelector('input[name="level"][value="B6"]');
+            
+            // 🌟 核心修正：將等級變數與 HTML value ("等級 1" ~ "等級 4") 完美綁定
+            const lvl1 = document.querySelector('input[name="level"][value="等級 1"]');
+            const lvl2 = document.querySelector('input[name="level"][value="等級 2"]');
+            const lvl3 = document.querySelector('input[name="level"][value="等級 3"]');
+            const lvl4 = document.querySelector('input[name="level"][value="等級 4"]');
+            
+            const notice = document.getElementById("clozeNotice");
+
+            if (selectedMode === "cloze") {
+                // 自動鎖定 B1-B4，強制取消勾選並禁用
+                [b1, b2, b3, b4].forEach(cb => {
+                    cb.checked = false;
+                    cb.disabled = true;
+                    cb.parentElement.classList.add("opacity-30", "cursor-not-allowed");
+                });
+                // 強制確保 B5, B6 或 高階 至少一項被勾選
+                const anySupplementChecked = lvl1.checked || lvl2.checked || lvl3.checked || lvl4.checked;
+                if (!b5.checked && !b6.checked && !anySupplementChecked) {
+                    b5.checked = true;
+                }
+                notice.classList.remove("hidden");
+            } else {
+                [b1, b2, b3, b4].forEach(cb => {
+                    cb.disabled = false;
+                    cb.parentElement.classList.remove("opacity-30", "cursor-not-allowed");
+                });
+                notice.classList.add("hidden");
+            }
+            updatePoolCount();
+        }
+
+        // ================= 8. 出題隨機化邏輯 =================
+        function startAdventure() {
+            updatePoolCount();
+            if (selectedWords.length === 0) {
+                showToast("⚠️ 沒選到任何單字喔！請多勾選一些範圍！");
+                return;
+            }
+
+            let limitVal = parseInt(document.querySelector('input[name="limit"]:checked').value);
+            const shuffled = shuffleArray([...selectedWords]);
+            const selectedBatch = shuffled.slice(0, Math.min(limitVal, shuffled.length));
+
+            if (currentMode === "flashcard") {
+                quizQueue = selectedBatch;
+                currentQuizIndex = 0;
+                setupFlashcardView();
+                switchScreen("screenFlashcard");
+            } else {
+                quizQueue = selectedBatch.map(item => ({
+                    ...item,
+                    isFirstAttempt: true 
+                }));
+                originalQuizCount = quizQueue.length;
+                quizTotalAttemptsCount = 0;
+                firstAttemptCorrectCount = 0;
+                quizHistory = {};
+                isWaitingFeedback = false;
+                
+                quizQueue.forEach(q => {
+                    quizHistory[q.word] = { firstAttemptCorrect: null, totalAttempts: 0 };
+                });
+
+                document.getElementById("feedbackBoard").classList.add("hidden");
+                document.getElementById("optionsGrid").classList.remove("hidden");
+
+                switchScreen("screenQuiz");
+                renderQuizQuestion();
+            }
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function switchScreen(screenId) {
+            ["screenSetup", "screenFlashcard", "screenQuiz", "screenSummary"].forEach(id => {
+                document.getElementById(id).classList.add("hidden");
+            });
+            document.getElementById(screenId).classList.remove("hidden");
+        }
+
+        // ================= 9. 單字卡瀏覽模式引擎 =================
+        function setupFlashcardView() {
+            if (quizQueue.length === 0) return;
+            const item = quizQueue[currentQuizIndex];
+            
+            document.getElementById("fcIndex").innerText = `${currentQuizIndex + 1} / ${quizQueue.length}`;
+            // 將等級欄位轉換成直覺縮寫，優雅展示
+            let displayLevel = item.level;
+            if (displayLevel === "等級 1") displayLevel = "補充LV1";
+            if (displayLevel === "等級 2") displayLevel = "補充LV2";
+            if (displayLevel === "等級 3") displayLevel = "補充LV3";
+            if (displayLevel === "等級 4") displayLevel = "補充LV4";
+            
+            document.getElementById("fcLevel").innerText = displayLevel;
+            document.getElementById("fcWord").innerText = item.word;
+            document.getElementById("fcPOS").innerText = item.part_of_speech ? `[${item.part_of_speech}]` : "";
+            document.getElementById("fcTranslation").innerText = item.translation;
+            
+            // 處理三態資訊
+            const frontThreeForms = document.getElementById("fcFrontThreeForms");
+            if (item.past_tense || item.past_participle) {
+                const formsText = `過去式: ${item.past_tense || '無'} / 分詞: ${item.past_participle || '無'}`;
+                
+                if (frontThreeForms) {
+                    frontThreeForms.innerText = formsText;
+                    frontThreeForms.classList.remove("hidden");
+                }
+                
+                document.getElementById("fcThreeForms").innerText = formsText;
+                document.getElementById("fcThreeForms").classList.remove("hidden");
+            } else {
+                if (frontThreeForms) frontThreeForms.classList.add("hidden");
+                document.getElementById("fcThreeForms").classList.add("hidden");
+            }
+
+            // 處理例句顯示
+            if (item.example_en && item.example_en.trim() !== "") {
+                document.getElementById("fcExampleEn").innerText = item.example_en;
+                document.getElementById("fcExampleCh").innerText = item.example_ch || "";
+            } else {
+                const quote = getMotivationalQuote(item.word);
+                document.getElementById("fcExampleEn").innerText = quote.en;
+                document.getElementById("fcExampleCh").innerText = quote.ch;
+            }
+
+            document.getElementById("fcCardInner").classList.remove("card-flipped");
+        }
+
+        function flipCard() {
+            document.getElementById("fcCardInner").classList.toggle("card-flipped");
+        }
+
+        function prevFlashcard() {
+            if (currentQuizIndex > 0) {
+                currentQuizIndex--;
+                setupFlashcardView();
+            }
+        }
+
+        function nextFlashcard() {
+            if (currentQuizIndex < quizQueue.length - 1) {
+                currentQuizIndex++;
+                setupFlashcardView();
+            }
+        }
+
+        // ================= 10. TTS 美式英語發音 =================
+        function speakWord(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9; 
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function speakCurrentWord(event) {
+            if (event) event.stopPropagation(); 
+            const word = quizQueue[currentQuizIndex].word;
+            speakWord(word);
+        }
+
+        function speakQuizWord() {
+            if (quizQueue.length === 0) return;
+            const currentItem = quizQueue[0];
+            speakWord(currentItem.word);
+        }
+
+        // ================= 11. 測驗引擎與克漏字翻譯切換 =================
+        let currentOptions = []; 
+
+        function renderQuizQuestion() {
+            if (quizQueue.length === 0) {
+                showQuizResult();
+                return;
+            }
+
+            isWaitingFeedback = false;
+            document.getElementById("feedbackBoard").classList.add("hidden");
+            document.getElementById("optionsGrid").classList.remove("hidden");
+
+            const currentItem = quizQueue[0];
+
+            const progressPercent = ((originalQuizCount - quizQueue.length) / originalQuizCount) * 100;
+            document.getElementById("quizProgressBar").style.width = `${progressPercent}%`;
+            document.getElementById("quizQueueCount").innerText = quizQueue.length;
+
+            const badge = document.getElementById("quizModeBadge");
+            const wordText = document.getElementById("questionText");
+            const wordLevel = document.getElementById("questionLevel");
+            const translationTip = document.getElementById("questionTranslation");
+            const speakBtn = document.getElementById("quizSpeakBtn");
+            const clozeTipContainer = document.getElementById("clozeTipContainer");
+            const toggleTranslationBtn = document.getElementById("toggleTranslationBtn");
+
+            let displayLevel = currentItem.level;
+            if (displayLevel === "等級 1") displayLevel = "補充LV1";
+            if (displayLevel === "等級 2") displayLevel = "補充LV2";
+            if (displayLevel === "等級 3") displayLevel = "補充LV3";
+            if (displayLevel === "等級 4") displayLevel = "補充LV4";
+
+            wordLevel.innerText = `${displayLevel} • ${currentItem.part_of_speech}`;
+            
+            translationTip.classList.add("hidden");
+            clozeTipContainer.classList.add("hidden");
+            if (toggleTranslationBtn) {
+                toggleTranslationBtn.innerHTML = `<span>💡 顯示中文提示</span>`;
+            }
+
+            currentOptions = generateOptions(currentItem);
+
+            if (currentMode === "en-ch") {
+                badge.innerText = "英選中";
+                wordText.innerText = currentItem.word;
+                speakBtn.classList.remove("hidden"); 
+                renderOptionButtons(currentOptions.map(o => `[${o.part_of_speech}] ${o.translation}`));
+                setTimeout(() => speakWord(currentItem.word), 300);
+
+            } else if (currentMode === "ch-en") {
+                badge.innerText = "中選英";
+                wordText.innerText = currentItem.translation;
+                speakBtn.classList.remove("hidden"); 
+                renderOptionButtons(currentOptions.map(o => o.word));
+
+            } else if (currentMode === "cloze") {
+                badge.innerText = "克漏字測驗";
+                clozeTipContainer.classList.remove("hidden"); 
+                
+                translationTip.innerText = `💡 例句翻譯：${currentItem.example_ch}`;
+                speakBtn.classList.add("hidden"); // 克漏字模式中隱藏發音按鈕，防止透露答案
+
+                const clozeSentence = makeClozeSentence(currentItem);
+                wordText.innerText = clozeSentence;
+                renderOptionButtons(currentOptions.map(o => o.word));
+            }
+        }
+
+        function toggleClozeTranslation() {
+            const translationTip = document.getElementById("questionTranslation");
+            const toggleBtn = document.getElementById("toggleTranslationBtn");
+            if (translationTip.classList.contains("hidden")) {
+                translationTip.classList.remove("hidden");
+                toggleBtn.innerHTML = `<span>🙈 隱藏中文提示</span>`;
+            } else {
+                translationTip.classList.add("hidden");
+                toggleBtn.innerHTML = `<span>💡 顯示中文提示</span>`;
+            }
+        }
+
+        function generateOptions(correctObj) {
+            let options = [correctObj];
+            let filterPool = selectedWords.filter(item => item.word !== correctObj.word);
+            
+            if (filterPool.length < 3) {
+                filterPool = database.filter(item => item.word !== correctObj.word);
+            }
+
+            const shuffledPool = shuffleArray([...filterPool]);
+            options.push(...shuffledPool.slice(0, 3));
+            
+            return shuffleArray(options); 
+        }
+
+        function renderOptionButtons(optionTexts) {
+            const buttons = document.querySelectorAll(".option-btn");
+            buttons.forEach((btn, index) => {
+                btn.className = "option-btn p-3.5 sm:p-4 bg-slate-800/60 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 active:scale-95 text-left rounded-xl transition-all font-semibold flex items-center justify-between text-xs sm:text-sm md:text-base min-h-[52px]";
+                btn.disabled = false;
+                
+                const textSpan = btn.querySelector(".option-text");
+                textSpan.innerText = optionTexts[index];
+            });
+        }
+
+        // ================= 12. 智慧型單字時態挖空演算法 =================
+        function makeClozeSentence(item) {
+            let sentence = item.example_en;
+            if (!sentence) return "This is a great study example sentence.";
+
+            let word = item.word.trim();
+
+            // 整理此題單字形式 (原形、過去式、分詞)
+            let forms = [word, item.past_tense, item.past_participle].filter(Boolean);
+            forms = [...new Set(forms)]; 
+            forms.sort((a, b) => b.length - a.length);
+
+            // 去重複、去除小寫標點
+            const particles = ["about", "above", "after", "against", "along", "among", "around", "at", "before", "behind", "below", "beneath", "beside", "between", "beyond", "by", "down", "during", "except", "for", "from", "in", "inside", "into", "like", "near", "of", "off", "on", "onto", "out", "outside", "over", "past", "since", "through", "throughout", "till", "to", "toward", "under", "underneath", "until", "up", "upon", "with", "within", "without", "as", "than", "and", "or", "but", "so"];
+
+            function getWordRoot(w) {
+                let clean = w.toLowerCase().replace(/[^a-z]/g, "");
+                if (clean.length <= 3 || particles.includes(clean)) return clean;
+                if (clean.endsWith("ing")) return clean.slice(0, -3);
+                if (clean.endsWith("ed") && clean.length > 4) return clean.slice(0, -2);
+                if (clean.endsWith("es") && clean.length > 4) return clean.slice(0, -2);
+                if (clean.endsWith("s") && clean.length > 3 && !clean.endsWith("ss")) return clean.slice(0, -1);
+                return clean;
+            }
+
+            function escapeReg(str) {
+                return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            }
+
+            let replaced = false;
+
+            // 1. 優先嘗試時態字尾變形匹配
+            for (let form of forms) {
+                try {
+                    let root = getWordRoot(form);
+                    let rx;
+                    if (root.length > 2 && !particles.includes(root)) {
+                        rx = new RegExp("\\b" + root + "[a-zA-Z]{0,5}\\b", "gi");
+                    } else {
+                        rx = new RegExp("\\b" + escapeReg(form) + "\\b", "gi");
+                    }
+
+                    if (rx.test(sentence)) {
+                        sentence = sentence.replace(rx, "_______");
+                        replaced = true;
+                        break;
+                    }
+                } catch (e) {
+                    console.error("Stemming parse error:", e);
+                }
+            }
+
+            // 2. 字面完全精確匹配備援
+            if (!replaced) {
+                for (let form of forms) {
+                    let rx = new RegExp("\\b" + escapeReg(form) + "\\b", 'gi');
+                    if (rx.test(sentence)) {
+                        sentence = sentence.replace(rx, "_______");
+                        replaced = true;
+                        break;
+                    }
+                }
+            }
+
+            return sentence;
+        }
+
+        // ================= 13. 答題判定與即時重練 =================
+        function checkAnswer(selectedIndex) {
+            if (isWaitingFeedback) return; 
+
+            const currentItem = quizQueue[0];
+            const chosenOption = currentOptions[selectedIndex];
+            const isCorrect = (chosenOption.word === currentItem.word);
+
+            quizTotalAttemptsCount++;
+            quizHistory[currentItem.word].totalAttempts++;
+
+            const buttons = document.querySelectorAll(".option-btn");
+            const mainContainer = document.getElementById("quizContentArea");
+
+            if (isCorrect) {
+                sfx.playCorrect();
+                buttons[selectedIndex].classList.add("correct-glow-element");
+                buttons[selectedIndex].className = buttons[selectedIndex].className.replace("bg-slate-800/60", "bg-emerald-950/60 border-emerald-500/80 text-emerald-300");
+
+                if (currentItem.isFirstAttempt) {
+                    quizHistory[currentItem.word].firstAttemptCorrect = true;
+                    firstAttemptCorrectCount++;
+                }
+
+                buttons.forEach(btn => btn.disabled = true);
+
+                setTimeout(() => {
+                    buttons[selectedIndex].classList.remove("correct-glow-element");
+                    quizQueue.shift(); 
+                    renderQuizQuestion();
+                }, 800);
+
+            } else {
+                sfx.playWrong();
+                mainContainer.classList.add("shake-element");
+                setTimeout(() => mainContainer.classList.remove("shake-element"), 450);
+
+                buttons[selectedIndex].className = buttons[selectedIndex].className.replace("bg-slate-800/60", "bg-red-950/60 border-red-500/80 text-red-400");
+                
+                if (currentItem.isFirstAttempt) {
+                    quizHistory[currentItem.word].firstAttemptCorrect = false;
+                }
+                
+                currentItem.isFirstAttempt = false;
+                isWaitingFeedback = true;
+                showIncorrectFeedback(currentItem);
+            }
+        }
+
+        function showIncorrectFeedback(item) {
+            document.getElementById("optionsGrid").classList.add("hidden");
+            document.getElementById("feedbackBoard").classList.remove("hidden");
+
+            document.getElementById("feedbackCorrectWord").innerText = item.word;
+            document.getElementById("feedbackTranslation").innerText = `[${item.part_of_speech}] ${item.translation}`;
+
+            if (item.past_tense || item.past_participle) {
+                document.getElementById("feedbackThreeForms").innerText = `${item.past_tense || '無'} / ${item.past_participle || '無'}`;
+                document.getElementById("feedbackThreeFormsContainer").classList.remove("hidden");
+            } else {
+                document.getElementById("feedbackThreeFormsContainer").classList.add("hidden");
+            }
+
+            document.getElementById("feedbackExampleEn").innerText = item.example_en || "Study hard, make progress daily!";
+            document.getElementById("feedbackExampleCh").innerText = item.example_ch || "努力學習，天天進步！";
+        }
+
+        function proceedAfterFeedback() {
+            if (quizQueue.length > 0) {
+                const failedItem = quizQueue.shift(); 
+                quizQueue.push(failedItem);           
+            }
+            renderQuizQuestion();
+        }
+
+        // ================= 14. 雙軌計分大結算 =================
+        function showQuizResult() {
+            switchScreen("screenSummary");
+
+            const accuracyScore = Math.round((firstAttemptCorrectCount / originalQuizCount) * 100);
+            document.getElementById("initialAccuracyScore").innerText = `${accuracyScore}%`;
+            document.getElementById("totalAttemptsValue").innerText = `${quizTotalAttemptsCount} 次`;
+
+            const banner = document.getElementById("perseveranceBanner");
+            if (accuracyScore >= 80) {
+                document.getElementById("summaryTitle").innerText = "太傑出了！妳是英文大師！🏆";
+                banner.innerHTML = `🌟 <strong class="text-emerald-400">初始正確率高達 ${accuracyScore}%！</strong> 妳對這批單字掌握得極度紮實，且僅用 ${quizTotalAttemptsCount} 次作答就通關了所有錯題，這就是精益求精的實力！`;
+                sfx.playSuccess();
+                triggerConfetti();
+            } else {
+                document.getElementById("summaryTitle").innerText = "恭喜挑戰成功！戰勝困難！🔥";
+                banner.innerHTML = `💪 <strong class="text-indigo-300">總計挑戰了 ${quizTotalAttemptsCount} 次！</strong> 雖然一開始有些挫折，但妳堅持到底，消滅了所有錯題庫，完成了 100% 的自我超越！阿晴，不放棄的毅力比天才更強大！`;
+                sfx.playCorrect();
+            }
+        }
+
+        // ================= 15. Canvas 五彩碎紙 =================
+        function triggerConfetti() {
+            const canvas = document.getElementById("confettiCanvas");
+            canvas.classList.remove("hidden");
+            const ctx = canvas.getContext("2d");
+            
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+            
+            window.addEventListener("resize", () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            });
+
+            const colors = ["#2dd4bf", "#818cf8", "#f43f5e", "#fbbf24", "#34d399", "#a78bfa"];
+            const particles = [];
+
+            for (let i = 0; i < 150; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height - height,
+                    r: Math.random() * 6 + 4,
+                    d: Math.random() * height,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    tilt: Math.random() * 10 - 5,
+                    tiltAngleIncremental: Math.random() * 0.07 + 0.02,
+                    tiltAngle: 0
+                });
+            }
+
+            let animationFrameId;
+            let animationTimer = 0;
+
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+                animationTimer++;
+                
+                let active = false;
+                particles.forEach((p, idx) => {
+                    p.tiltAngle += p.tiltAngleIncremental;
+                    p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
+                    p.x += Math.sin(p.tiltAngle);
+                    p.tilt = Math.sin(p.tiltAngle - idx / 3) * 15;
+
+                    if (p.y < height) {
+                        active = true;
+                    }
+
+                    ctx.beginPath();
+                    ctx.lineWidth = p.r;
+                    ctx.strokeStyle = p.color;
+                    ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+                    ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+                    ctx.stroke();
+                });
+
+                if (active && animationTimer < 300) {
+                    animationFrameId = requestAnimationFrame(draw);
+                } else {
+                    cancelAnimationFrame(animationFrameId);
+                    ctx.clearRect(0, 0, width, height);
+                    canvas.classList.add("hidden");
+                }
+            }
+
+            draw();
+        }
+
+        // ================= 16. 輔助控制按鈕 =================
+        function exitToSetup() {
+            switchScreen("screenSetup");
+            updatePoolCount();
+        }
+
+        function restartSameAdventure() {
+            startAdventure();
+        }
+
+        function confirmExit() {
+            exitToSetup();
+        }
+    </script>
+</body>
+</html>
