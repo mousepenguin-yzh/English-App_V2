@@ -1078,7 +1078,7 @@
                 badge.innerText = "英選中";
                 wordText.innerText = currentItem.word;
                 speakBtn.classList.remove("hidden"); 
-                renderOptionButtons(currentOptions.map(o => `[${o.part_of_speech}] ${o.translation}`));
+                renderOptionButtons(currentOptions.map(o => o.translation));
                 setTimeout(() => speakWord(currentItem.word), 300);
 
             } else if (currentMode === "ch-en") {
