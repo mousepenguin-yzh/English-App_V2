@@ -1084,7 +1084,7 @@
             } else if (currentMode === "ch-en") {
                 badge.innerText = "中選英";
                 wordText.innerText = currentItem.translation;
-                speakBtn.classList.remove("hidden"); 
+                speakBtn.classList.add("hidden");
                 renderOptionButtons(currentOptions.map(o => o.word));
 
             } else if (currentMode === "cloze") {
