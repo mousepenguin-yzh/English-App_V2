@@ -86,16 +86,25 @@
                 </div>
             </div>
             
-            <!-- 工具選單 (靜音切換、重新載入) -->
-            <div class="flex items-center gap-3">
-                <button id="muteBtn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-sm" onclick="toggleMute()">
-                    <span id="soundIcon" class="inline-block">
+            <!-- 工具選單 (語音切換、音效切換) -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <button id="speechBtn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-sm" onclick="toggleSpeech()">
+                    <span id="speechIcon" class="inline-block">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4z"/>
+                            <path d="M5.5 8.5a.75.75 0 011.5 0 3 3 0 006 0 .75.75 0 011.5 0 4.5 4.5 0 01-3.75 4.437V15.5h1.75a.75.75 0 010 1.5h-5a.75.75 0 010-1.5h1.75v-2.563A4.5 4.5 0 015.5 8.5z"/>
+                        </svg>
+                    </span>
+                    <span id="speechText" class="hidden sm:inline">語音開啟</span>
+                </button>
+                <button id="sfxBtn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-sm" onclick="toggleMute()">
+                    <span id="sfxIcon" class="inline-block">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.69-3.69a1 1 0 011.107-.234zM11 10a3 3 0 01-3 3v2a5 5 0 005-5H11z" clip-rule="evenodd"/>
                             <path d="M13 10a5 5 0 01-5 5v2a7 7 0 007-7h-2z"/>
                         </svg>
                     </span>
-                    <span id="soundText" class="hidden sm:inline">語音與音效已開啟</span>
+                    <span id="sfxText" class="hidden sm:inline">音效開啟</span>
                 </button>
             </div>
         </div>
@@ -609,28 +618,35 @@
             }
         }
         const sfx = new SoundSynth();
+        let speechEnabled = true;
+        const audioButtonOnClass = "p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-sm";
+        const audioButtonOffClass = "p-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-500/20 transition-all flex items-center gap-1.5 text-sm";
+
+        function toggleSpeech() {
+            speechEnabled = !speechEnabled;
+            updateSpeechButton();
+            if (!speechEnabled && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function updateSpeechButton() {
+            const btn = document.getElementById("speechBtn");
+            const text = document.getElementById("speechText");
+            btn.className = speechEnabled ? audioButtonOnClass : audioButtonOffClass;
+            text.innerText = speechEnabled ? "語音開啟" : "語音關閉";
+        }
 
         function toggleMute() {
             sfx.muted = !sfx.muted;
-            const btn = document.getElementById("muteBtn");
-            const icon = document.getElementById("soundIcon");
-            const text = document.getElementById("soundText");
-            
-            if (sfx.muted) {
-                btn.className = "p-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-500/20 transition-all flex items-center gap-1.5 text-sm";
-                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M13.414 10l3.293-3.293a1 1 0 111.414 1.414L14.828 10l3.293 3.293a1 1 0 01-1.414 1.414L13.414 10zM10.586 10L7.293 6.707a1 1 0 00-1.414 1.414L9.172 10l-3.293 3.293a1 1 0 101.414 1.414L10.586 10z" clip-rule="evenodd"/>
-                    <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.69-3.69a1 1 0 011.107-.234z" clip-rule="evenodd"/>
-                </svg>`;
-                text.innerText = "語音與音效已靜音";
-            } else {
-                btn.className = "p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-sm";
-                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.69-3.69a1 1 0 011.107-.234zM11 10a3 3 0 01-3 3v2a5 5 0 005-5H11z" clip-rule="evenodd"/>
-                    <path d="M13 10a5 5 0 01-5 5v2a7 7 0 007-7h-2z"/>
-                </svg>`;
-                text.innerText = "語音與音效已開啟";
-            }
+            updateSfxButton();
+        }
+
+        function updateSfxButton() {
+            const btn = document.getElementById("sfxBtn");
+            const text = document.getElementById("sfxText");
+            btn.className = sfx.muted ? audioButtonOffClass : audioButtonOnClass;
+            text.innerText = sfx.muted ? "音效關閉" : "音效開啟";
         }
 
         // ================= 4. 全域變數狀態 =================
@@ -1010,6 +1026,7 @@
 
         // ================= 10. TTS 美式英語發音 =================
         function speakWord(text) {
+            if (!speechEnabled) return;
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
