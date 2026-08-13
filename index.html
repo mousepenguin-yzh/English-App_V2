@@ -222,48 +222,8 @@
                                         <span id="clozeNotice" class="text-[10px] sm:text-xs text-amber-400 font-normal hidden">⚠️ 克漏字僅限高階範圍</span>
                                     </div>
                                 </h3>
-                                <div class="grid grid-cols-2 gap-2 sm:gap-3" id="levelGrid">
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="B1" checked class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-semibold">第一冊 (B1)</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="B2" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-semibold">第二冊 (B2)</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="B3" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-semibold">第三冊 (B3)</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="B4" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-semibold">第四冊 (B4)</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="B5" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-semibold text-indigo-300">第五冊 (B5)</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="B6" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-semibold text-indigo-300">第六冊 (B6)</span>
-                                    </label>
-                                    <!-- 🌟 核心修正：將 checkbox value 與 Google Sheet 真實 level 值 ("等級 1" ~ "等級 4") 完美對齊 -->
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="等級 1" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV1</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="等級 2" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV2</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="等級 3" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV3</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-800/40 rounded-xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors">
-                                        <input type="checkbox" name="level" value="等級 4" class="w-4 h-4 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900">
-                                        <span class="text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">✨ 補充LV4</span>
-                                    </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3" id="levelGrid">
+                                    <!-- 冊別與選用的課次會在題庫載入後依資料動態建立。 -->
                                 </div>
                             </div>
 
@@ -701,9 +661,6 @@
                 loadDefaultDatabase();
             }
             
-            document.querySelectorAll('input[name="level"]').forEach(el => {
-                el.addEventListener('change', updatePoolCount);
-            });
         };
 
         async function fetchCSVData(url) {
@@ -775,11 +732,12 @@
             const parsedData = [];
             for (let i = 1; i < r.length; i++) {
                 const rowData = r[i];
-                if (rowData.length < headers.length) continue;
                 let obj = {};
                 headers.forEach((h, idx) => {
                     obj[h] = rowData[idx] ? rowData[idx].trim() : '';
                 });
+                // lesson 是選用欄位；舊資料列即使少了尾端欄位也保留，並正規化為空字串。
+                obj.lesson = (obj.lesson || '').trim();
                 if (obj.word) {
                     parsedData.push(obj);
                 }
@@ -806,37 +764,182 @@
                 `;
             }
             
-            updatePoolCount();
+            renderLevelSelectors();
+            handleModeChange();
         }
 
         // ================= 6. 輔助多選與狀態同步 =================
-        function toggleSelectAll(source) {
-            const checkboxes = document.querySelectorAll('input[name="level"]');
-            checkboxes.forEach(cb => {
-                if (!cb.disabled) {
-                    cb.checked = source.checked;
+        const LEVEL_DEFINITIONS = [
+            { value: "B1", label: "第一冊 (B1)" },
+            { value: "B2", label: "第二冊 (B2)" },
+            { value: "B3", label: "第三冊 (B3)" },
+            { value: "B4", label: "第四冊 (B4)" },
+            { value: "B5", label: "第五冊 (B5)", high: true },
+            { value: "B6", label: "第六冊 (B6)", high: true },
+            { value: "等級 1", label: "✨ 補充LV1", supplement: true },
+            { value: "等級 2", label: "✨ 補充LV2", supplement: true },
+            { value: "等級 3", label: "✨ 補充LV3", supplement: true },
+            { value: "等級 4", label: "✨ 補充LV4", supplement: true }
+        ];
+        const UNASSIGNED_LESSON = "__UNASSIGNED__";
+
+        function normalizedLesson(item) {
+            return String(item.lesson || '').trim();
+        }
+
+        function getQuestionKey(item) {
+            return JSON.stringify([
+                String(item.level || '').trim(),
+                normalizedLesson(item),
+                String(item.word || '').trim(),
+                String(item.part_of_speech || '').trim(),
+                String(item.translation || '').trim()
+            ]);
+        }
+
+        function lessonLabel(lesson) {
+            return /^\d+$/.test(lesson) ? `第 ${Number(lesson)} 課` : lesson;
+        }
+
+        function formatLearningRange(item) {
+            let level = item.level;
+            if (level.startsWith("等級 ")) level = `補充LV${level.slice(3)}`;
+            const lesson = normalizedLesson(item);
+            return lesson ? `${level}・${lessonLabel(lesson)}` : level;
+        }
+
+        function getLessonsForLevel(level) {
+            const items = database.filter(item => item.level === level);
+            const lessonCounts = new Map();
+            let unassignedCount = 0;
+            items.forEach(item => {
+                const lesson = normalizedLesson(item);
+                if (lesson) lessonCounts.set(lesson, (lessonCounts.get(lesson) || 0) + 1);
+                else unassignedCount++;
+            });
+            const lessons = [...lessonCounts.entries()].sort(([a], [b]) => {
+                const aNumeric = /^\d+$/.test(a);
+                const bNumeric = /^\d+$/.test(b);
+                if (aNumeric && bNumeric) return Number(a) - Number(b);
+                if (aNumeric !== bNumeric) return aNumeric ? -1 : 1;
+                return a.localeCompare(b, "zh-Hant", { numeric: true });
+            });
+            return { lessons, unassignedCount, hasLessons: lessons.length > 0 };
+        }
+
+        function renderLevelSelectors() {
+            const grid = document.getElementById("levelGrid");
+            grid.innerHTML = '';
+            LEVEL_DEFINITIONS.forEach((definition, index) => {
+                const lessonInfo = getLessonsForLevel(definition.value);
+                const card = document.createElement("div");
+                card.className = "min-w-0 bg-slate-800/40 rounded-xl border border-slate-800 overflow-hidden";
+                card.dataset.levelCard = definition.value;
+
+                const header = document.createElement("div");
+                header.className = "flex items-center gap-2 p-2 sm:p-3 hover:bg-slate-800 transition-colors";
+                const parentLabel = document.createElement("label");
+                parentLabel.className = "flex min-w-0 flex-1 items-center gap-2 sm:gap-3 cursor-pointer";
+                const parent = document.createElement("input");
+                parent.type = "checkbox";
+                parent.name = "level";
+                parent.value = definition.value;
+                parent.checked = index === 0;
+                parent.className = "w-4 h-4 shrink-0 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900";
+                const title = document.createElement("span");
+                title.className = definition.supplement
+                    ? "min-w-0 text-xs sm:text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400"
+                    : `min-w-0 text-xs sm:text-sm font-semibold${definition.high ? ' text-indigo-300' : ''}`;
+                title.textContent = definition.label;
+                parentLabel.append(parent, title);
+                header.append(parentLabel);
+
+                let childrenContainer = null;
+                if (lessonInfo.hasLessons) {
+                    const expand = document.createElement("button");
+                    expand.type = "button";
+                    expand.className = "shrink-0 p-1.5 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white";
+                    expand.setAttribute("aria-label", `展開${definition.label}課次`);
+                    expand.setAttribute("aria-expanded", "false");
+                    expand.textContent = "▾";
+                    header.append(expand);
+                    childrenContainer = document.createElement("div");
+                    childrenContainer.className = "hidden min-w-0 border-t border-slate-700/70 p-2 pl-4 sm:pl-6 space-y-1 bg-slate-900/35";
+                    const children = [...lessonInfo.lessons];
+                    if (lessonInfo.unassignedCount > 0) children.push([UNASSIGNED_LESSON, lessonInfo.unassignedCount]);
+                    children.forEach(([lesson, count]) => {
+                        const label = document.createElement("label");
+                        label.className = "flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 cursor-pointer hover:bg-slate-800";
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.name = "lesson";
+                        checkbox.dataset.level = definition.value;
+                        checkbox.value = lesson;
+                        checkbox.checked = parent.checked;
+                        checkbox.className = "w-3.5 h-3.5 shrink-0 rounded border-slate-700 text-teal-500 focus:ring-teal-500 bg-slate-900";
+                        const text = document.createElement("span");
+                        text.className = "min-w-0 break-words text-xs text-slate-300";
+                        text.textContent = `${lesson === UNASSIGNED_LESSON ? '未分課' : lessonLabel(lesson)}（${count}）`;
+                        label.append(checkbox, text);
+                        childrenContainer.append(label);
+                    });
+                    expand.addEventListener("click", () => {
+                        const opening = childrenContainer.classList.contains("hidden");
+                        childrenContainer.classList.toggle("hidden", !opening);
+                        expand.setAttribute("aria-expanded", String(opening));
+                        expand.textContent = opening ? "▴" : "▾";
+                    });
                 }
+                card.append(header);
+                if (childrenContainer) card.append(childrenContainer);
+                grid.append(card);
+
+                parent.addEventListener("change", () => {
+                    card.querySelectorAll('input[name="lesson"]').forEach(child => child.checked = parent.checked);
+                    parent.indeterminate = false;
+                    updatePoolCount();
+                });
+                card.querySelectorAll('input[name="lesson"]').forEach(child => {
+                    child.addEventListener("change", () => {
+                        syncParentFromChildren(card);
+                        updatePoolCount();
+                    });
+                });
+            });
+        }
+
+        function syncParentFromChildren(card) {
+            const parent = card.querySelector('input[name="level"]');
+            const children = [...card.querySelectorAll('input[name="lesson"]')];
+            if (!children.length) return;
+            const checkedCount = children.filter(child => child.checked).length;
+            parent.checked = checkedCount > 0;
+            parent.indeterminate = checkedCount > 0 && checkedCount < children.length;
+        }
+
+        function toggleSelectAll(source) {
+            document.querySelectorAll('[data-level-card]').forEach(card => {
+                const parent = card.querySelector('input[name="level"]');
+                if (parent.disabled) return;
+                parent.checked = source.checked;
+                parent.indeterminate = false;
+                card.querySelectorAll('input[name="lesson"]').forEach(child => child.checked = source.checked);
             });
             updatePoolCount();
         }
 
         function syncSelectAllState() {
-            const checkboxes = Array.from(document.querySelectorAll('input[name="level"]'));
-            const enabledCheckboxes = checkboxes.filter(cb => !cb.disabled);
-            const checkedEnabled = enabledCheckboxes.filter(cb => cb.checked);
+            const enabledCheckboxes = [...document.querySelectorAll('input[name="level"]')].filter(cb => !cb.disabled);
+            const fullyChecked = enabledCheckboxes.filter(cb => cb.checked && !cb.indeterminate);
+            const anyChecked = enabledCheckboxes.some(cb => cb.checked || cb.indeterminate);
             const selectAllBox = document.getElementById("selectAllCheckbox");
-            
-            if (enabledCheckboxes.length > 0 && checkedEnabled.length === enabledCheckboxes.length) {
-                selectAllBox.checked = true;
-            } else {
-                selectAllBox.checked = false;
-            }
+            selectAllBox.checked = enabledCheckboxes.length > 0 && fullyChecked.length === enabledCheckboxes.length;
+            selectAllBox.indeterminate = anyChecked && !selectAllBox.checked;
         }
 
         function updatePoolCount() {
             syncSelectAllState();
-            const levels = getSelectedLevels();
-            let filtered = database.filter(item => levels.includes(item.level));
+            let filtered = database.filter(matchesSelectedRange);
             
             // 🌟 核心規則：如果目前是「克漏字模式」，在底層直接、徹底過濾掉片語 (Phrases)
             const selectedMode = document.querySelector('input[name="mode"]:checked')?.value || currentMode;
@@ -852,55 +955,56 @@
             document.getElementById("wordPoolCount").innerText = selectedWords.length;
         }
 
-        function getSelectedLevels() {
-            const checked = [];
-            document.querySelectorAll('input[name="level"]:checked').forEach(el => {
-                checked.push(el.value);
-            });
-            return checked;
+        function matchesSelectedRange(item) {
+            const parent = document.querySelector(`input[name="level"][value="${CSS.escape(item.level)}"]`);
+            if (!parent || !parent.checked || parent.disabled) return false;
+            const children = [...document.querySelectorAll(`input[name="lesson"][data-level="${CSS.escape(item.level)}"]`)];
+            if (!children.length) return true;
+            const lesson = normalizedLesson(item) || UNASSIGNED_LESSON;
+            return children.some(child => child.checked && child.value === lesson);
         }
 
         // ================= 7. 模式切換與特殊鎖定 =================
         function handleModeChange() {
             const selectedMode = document.querySelector('input[name="mode"]:checked').value;
             currentMode = selectedMode;
-            
-            const b1 = document.querySelector('input[name="level"][value="B1"]');
-            const b2 = document.querySelector('input[name="level"][value="B2"]');
-            const b3 = document.querySelector('input[name="level"][value="B3"]');
-            const b4 = document.querySelector('input[name="level"][value="B4"]');
-            const b5 = document.querySelector('input[name="level"][value="B5"]');
-            const b6 = document.querySelector('input[name="level"][value="B6"]');
-            
-            // 🌟 核心修正：將等級變數與 HTML value ("等級 1" ~ "等級 4") 完美綁定
-            const lvl1 = document.querySelector('input[name="level"][value="等級 1"]');
-            const lvl2 = document.querySelector('input[name="level"][value="等級 2"]');
-            const lvl3 = document.querySelector('input[name="level"][value="等級 3"]');
-            const lvl4 = document.querySelector('input[name="level"][value="等級 4"]');
-            
             const notice = document.getElementById("clozeNotice");
 
             if (selectedMode === "cloze") {
-                // 自動鎖定 B1-B4，強制取消勾選並禁用
-                [b1, b2, b3, b4].forEach(cb => {
-                    cb.checked = false;
-                    cb.disabled = true;
-                    cb.parentElement.classList.add("opacity-30", "cursor-not-allowed");
-                });
-                // 強制確保 B5, B6 或 高階 至少一項被勾選
-                const anySupplementChecked = lvl1.checked || lvl2.checked || lvl3.checked || lvl4.checked;
-                if (!b5.checked && !b6.checked && !anySupplementChecked) {
-                    b5.checked = true;
+                ["B1", "B2", "B3", "B4"].forEach(level => setLevelDisabled(level, true));
+                const allowed = ["B5", "B6", "等級 1", "等級 2", "等級 3", "等級 4"]
+                    .map(level => document.querySelector(`input[name="level"][value="${level}"]`));
+                if (!allowed.some(cb => cb && cb.checked)) {
+                    const b5 = allowed[0];
+                    if (b5) {
+                        b5.checked = true;
+                        b5.indeterminate = false;
+                        b5.closest('[data-level-card]').querySelectorAll('input[name="lesson"]').forEach(child => child.checked = true);
+                    }
                 }
                 notice.classList.remove("hidden");
             } else {
-                [b1, b2, b3, b4].forEach(cb => {
-                    cb.disabled = false;
-                    cb.parentElement.classList.remove("opacity-30", "cursor-not-allowed");
-                });
+                ["B1", "B2", "B3", "B4"].forEach(level => setLevelDisabled(level, false));
                 notice.classList.add("hidden");
             }
             updatePoolCount();
+        }
+
+        function setLevelDisabled(level, disabled) {
+            const parent = document.querySelector(`input[name="level"][value="${level}"]`);
+            if (!parent) return;
+            const card = parent.closest('[data-level-card]');
+            parent.disabled = disabled;
+            if (disabled) {
+                parent.checked = false;
+                parent.indeterminate = false;
+            }
+            card.querySelectorAll('input[name="lesson"]').forEach(child => {
+                child.disabled = disabled;
+                if (disabled) child.checked = false;
+            });
+            card.classList.toggle("opacity-30", disabled);
+            card.classList.toggle("cursor-not-allowed", disabled);
         }
 
         // ================= 8. 出題隨機化邏輯 =================
@@ -932,7 +1036,7 @@
                 isWaitingFeedback = false;
                 
                 quizQueue.forEach(q => {
-                    quizHistory[q.word] = { firstAttemptCorrect: null, totalAttempts: 0 };
+                    quizHistory[getQuestionKey(q)] = { firstAttemptCorrect: null, totalAttempts: 0 };
                 });
 
                 document.getElementById("feedbackBoard").classList.add("hidden");
@@ -964,14 +1068,7 @@
             const item = quizQueue[currentQuizIndex];
             
             document.getElementById("fcIndex").innerText = `${currentQuizIndex + 1} / ${quizQueue.length}`;
-            // 將等級欄位轉換成直覺縮寫，優雅展示
-            let displayLevel = item.level;
-            if (displayLevel === "等級 1") displayLevel = "補充LV1";
-            if (displayLevel === "等級 2") displayLevel = "補充LV2";
-            if (displayLevel === "等級 3") displayLevel = "補充LV3";
-            if (displayLevel === "等級 4") displayLevel = "補充LV4";
-            
-            document.getElementById("fcLevel").innerText = displayLevel;
+            document.getElementById("fcLevel").innerText = formatLearningRange(item);
             document.getElementById("fcWord").innerText = item.word;
             document.getElementById("fcPOS").innerText = item.part_of_speech ? `[${item.part_of_speech}]` : "";
             document.getElementById("fcTranslation").innerText = item.translation;
@@ -1075,13 +1172,7 @@
             const clozeTipContainer = document.getElementById("clozeTipContainer");
             const toggleTranslationBtn = document.getElementById("toggleTranslationBtn");
 
-            let displayLevel = currentItem.level;
-            if (displayLevel === "等級 1") displayLevel = "補充LV1";
-            if (displayLevel === "等級 2") displayLevel = "補充LV2";
-            if (displayLevel === "等級 3") displayLevel = "補充LV3";
-            if (displayLevel === "等級 4") displayLevel = "補充LV4";
-
-            wordLevel.innerText = `${displayLevel} • ${currentItem.part_of_speech}`;
+            wordLevel.innerText = `${formatLearningRange(currentItem)} • ${currentItem.part_of_speech}`;
             
             translationTip.classList.add("hidden");
             clozeTipContainer.classList.add("hidden");
@@ -1228,9 +1319,10 @@
             const currentItem = quizQueue[0];
             const chosenOption = currentOptions[selectedIndex];
             const isCorrect = (chosenOption.word === currentItem.word);
+            const questionKey = getQuestionKey(currentItem);
 
             quizTotalAttemptsCount++;
-            quizHistory[currentItem.word].totalAttempts++;
+            quizHistory[questionKey].totalAttempts++;
 
             const buttons = document.querySelectorAll(".option-btn");
             const mainContainer = document.getElementById("quizContentArea");
@@ -1241,7 +1333,7 @@
                 buttons[selectedIndex].className = buttons[selectedIndex].className.replace("bg-slate-800/60", "bg-emerald-950/60 border-emerald-500/80 text-emerald-300");
 
                 if (currentItem.isFirstAttempt) {
-                    quizHistory[currentItem.word].firstAttemptCorrect = true;
+                    quizHistory[questionKey].firstAttemptCorrect = true;
                     firstAttemptCorrectCount++;
                 }
 
@@ -1261,7 +1353,7 @@
                 buttons[selectedIndex].className = buttons[selectedIndex].className.replace("bg-slate-800/60", "bg-red-950/60 border-red-500/80 text-red-400");
                 
                 if (currentItem.isFirstAttempt) {
-                    quizHistory[currentItem.word].firstAttemptCorrect = false;
+                    quizHistory[questionKey].firstAttemptCorrect = false;
                 }
                 
                 currentItem.isFirstAttempt = false;
