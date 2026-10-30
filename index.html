@@ -206,6 +206,20 @@
                                     </div>
                                 </div>
                             </label>
+                            <!-- 模式 5 -->
+                            <label class="block cursor-pointer group">
+                                <input type="radio" name="mode" value="spelling" class="sr-only peer" onchange="handleModeChange()">
+                                <div class="p-3 sm:p-4 bg-slate-800/50 border border-slate-800 rounded-2xl peer-checked:border-teal-400 peer-checked:bg-teal-500/5 group-hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-700 flex items-center justify-center text-lg">⌨️</div>
+                                        <div>
+                                            <p class="font-bold text-sm sm:text-base text-slate-200">中翻英拼字測驗</p>
+                                            <p class="text-[11px] sm:text-xs text-slate-400">看中文輸入英文，答錯稍後重練</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            <p id="spellingNotice" class="hidden text-xs text-amber-400 leading-relaxed">拼字模式已排除義項與詞性重疊、多答案及特殊格式題目；下方顯示實際可用題數。請依題庫拼寫，片語空格、撇號與連字號須正確。</p>
                         </div>
 
                         <!-- 右側：範圍與題數 -->
@@ -401,6 +415,19 @@
                             💪 已學起來，繼續下一題！
                         </button>
                     </div>
+
+                    <!-- 使用原生表單支援手機送出鍵與 Enter；答案不放入輸入框屬性。 -->
+                    <form id="spellingForm" class="hidden space-y-3" autocomplete="off" onsubmit="submitSpellingAnswer(event)">
+                        <label for="spellingAnswer" class="block text-sm font-bold text-slate-300">英文答案</label>
+                        <input id="spellingAnswer" type="text" lang="en" inputmode="text" enterkeyhint="send"
+                            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+                            aria-describedby="spellingHelp spellingStatus" oninput="updateSpellingSubmit()"
+                            onkeydown="if (event.key === 'Enter' && (event.repeat || event.isComposing || event.keyCode === 229)) event.preventDefault()"
+                            class="w-full min-w-0 p-3.5 bg-slate-800 border border-slate-700 rounded-xl text-base text-white focus:outline-none focus:ring-2 focus:ring-teal-400">
+                        <p id="spellingHelp" class="text-xs text-slate-400">不分大小寫，忽略首尾空白；其餘拼字、空格及標點須正確。</p>
+                        <p id="spellingStatus" role="status" aria-live="polite" class="text-sm text-emerald-400"></p>
+                        <button id="spellingSubmit" type="submit" disabled class="w-full min-h-[52px] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all">送出答案</button>
+                    </form>
 
                     <!-- 選項按鈕區 (四選一) -->
                     <div id="optionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -621,6 +648,9 @@
         let quizTotalAttemptsCount = 0; 
         let firstAttemptCorrectCount = 0; 
         let isWaitingFeedback = false;  
+        let spellingAdvanceTimer = null;
+        let spellingReviewPending = false;
+        let quizSession = 0;
         let isUsingFallback = false; 
         
         // 🌟 溫馨雙語心靈小語 (通用版)
@@ -951,8 +981,49 @@
                 });
             }
             
+            if (selectedMode === "spelling") filtered = filterSpellingWords(filtered);
             selectedWords = filtered;
             document.getElementById("wordPoolCount").innerText = selectedWords.length;
+        }
+
+        // 僅正規化大小寫及首尾空白，不改寫答案內部的任何字元。
+        function normalizeSpellingAnswer(answer) {
+            return String(answer).trim().toLowerCase();
+        }
+
+        function spellingMeanings(item) {
+            return String(item.translation || '').split(/[;；、]/)
+                .map(text => text.replace(/\s/g, '').replace(/…|\.{3}/g, '⋯').toLowerCase()).filter(Boolean);
+        }
+
+        function spellingPartsOfSpeech(item) {
+            return String(item.part_of_speech || '').toLowerCase().split('/')
+                .map(text => text.trim()).filter(Boolean);
+        }
+
+        function filterSpellingWords(pool, allWords = database) {
+            // 跨全題庫檢查相同義項及詞性，即使另一答案不在目前選取範圍也排除。
+            const answersByPrompt = new Map();
+            const promptKeys = item => spellingMeanings(item).flatMap(meaning =>
+                spellingPartsOfSpeech(item).map(pos => JSON.stringify([meaning, pos])));
+            allWords.forEach(item => {
+                promptKeys(item).forEach(key => {
+                    if (!answersByPrompt.has(key)) answersByPrompt.set(key, new Set());
+                    answersByPrompt.get(key).add(normalizeSpellingAnswer(item.word));
+                });
+            });
+            const seen = new Set();
+            return pool.filter(item => {
+                // 保留一般單字、片語、ASCII 撇號及連字號；排除變體列表、括號、
+                // 佔位省略號、縮寫點號、句尾標點與彎引號，避免要求不明確的輸入。
+                if (!/^[a-z]+(?:[ '-][a-z]+)*$/i.test(String(item.word || '').trim())) return false;
+                const keys = promptKeys(item);
+                if (!keys.length || keys.some(key => answersByPrompt.get(key)?.size > 1)) return false;
+                const key = getQuestionKey({ ...item, word: normalizeSpellingAnswer(item.word) });
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
         }
 
         function matchesSelectedRange(item) {
@@ -969,6 +1040,7 @@
             const selectedMode = document.querySelector('input[name="mode"]:checked').value;
             currentMode = selectedMode;
             const notice = document.getElementById("clozeNotice");
+            document.getElementById("spellingNotice").classList.toggle("hidden", selectedMode !== "spelling");
 
             if (selectedMode === "cloze") {
                 ["B1", "B2", "B3", "B4"].forEach(level => setLevelDisabled(level, true));
@@ -1009,6 +1081,7 @@
 
         // ================= 8. 出題隨機化邏輯 =================
         function startAdventure() {
+            resetQuizInteraction();
             updatePoolCount();
             if (selectedWords.length === 0) {
                 showToast("⚠️ 沒選到任何單字喔！請多勾選一些範圍！");
@@ -1180,14 +1253,34 @@
                 toggleTranslationBtn.innerHTML = `<span>💡 顯示中文提示</span>`;
             }
 
-            currentOptions = generateOptions(currentItem);
+            const spelling = currentMode === "spelling";
+            document.getElementById("spellingForm").classList.toggle("hidden", !spelling);
+            document.getElementById("optionsGrid").classList.toggle("hidden", spelling);
+            currentOptions = spelling ? [] : generateOptions(currentItem);
+
+            if (spelling) {
+                badge.innerText = "中翻英拼字測驗";
+                wordText.innerText = currentItem.translation;
+                speakBtn.classList.add("hidden");
+                const input = document.getElementById("spellingAnswer");
+                input.value = "";
+                spellingReviewPending = false;
+                document.getElementById("spellingStatus").innerText = "";
+                updateSpellingSubmit();
+                input.focus({ preventScroll: true });
+            }
 
             if (currentMode === "en-ch") {
                 badge.innerText = "英選中";
                 wordText.innerText = currentItem.word;
                 speakBtn.classList.remove("hidden"); 
                 renderOptionButtons(currentOptions.map(o => o.translation));
-                setTimeout(() => speakWord(currentItem.word), 300);
+                const session = quizSession;
+                setTimeout(() => {
+                    if (session === quizSession && currentMode === "en-ch" && quizQueue[0] === currentItem) {
+                        speakWord(currentItem.word);
+                    }
+                }, 300);
 
             } else if (currentMode === "ch-en") {
                 badge.innerText = "中選英";
@@ -1205,6 +1298,57 @@
                 const clozeSentence = makeClozeSentence(currentItem);
                 wordText.innerText = clozeSentence;
                 renderOptionButtons(currentOptions.map(o => o.word));
+            }
+        }
+
+        function resetQuizInteraction() {
+            quizSession++;
+            clearTimeout(spellingAdvanceTimer);
+            spellingAdvanceTimer = null;
+            spellingReviewPending = false;
+            if (currentMode === "spelling") isWaitingFeedback = true;
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+
+        function updateSpellingSubmit() {
+            document.getElementById("spellingSubmit").disabled = isWaitingFeedback ||
+                !normalizeSpellingAnswer(document.getElementById("spellingAnswer").value);
+        }
+
+        function submitSpellingAnswer(event) {
+            event.preventDefault();
+            if (currentMode !== "spelling" || isWaitingFeedback || !quizQueue.length ||
+                document.getElementById("screenQuiz").classList.contains("hidden")) return;
+            const input = document.getElementById("spellingAnswer");
+            const answer = normalizeSpellingAnswer(input.value);
+            if (!answer) return;
+            isWaitingFeedback = true; // 在任何回饋與延遲換題之前鎖定，防止重複計分。
+            // 保留輸入焦點，減少手機每題重新喚起鍵盤的操作；送出由狀態鎖保護。
+            updateSpellingSubmit();
+            const item = quizQueue[0];
+            const history = quizHistory[getQuestionKey(item)];
+            quizTotalAttemptsCount++;
+            history.totalAttempts++;
+            const correct = answer === normalizeSpellingAnswer(item.word);
+            if (item.isFirstAttempt) {
+                history.firstAttemptCorrect = correct;
+                if (correct) firstAttemptCorrectCount++;
+            }
+            item.isFirstAttempt = false;
+            if (correct) {
+                sfx.playCorrect();
+                document.getElementById("spellingStatus").innerText = "答對了！";
+                spellingAdvanceTimer = setTimeout(() => {
+                    spellingAdvanceTimer = null;
+                    quizQueue.shift();
+                    renderQuizQuestion();
+                }, 800);
+            } else {
+                sfx.playWrong();
+                spellingReviewPending = true;
+                input.blur();
+                document.getElementById("spellingForm").classList.add("hidden");
+                showIncorrectFeedback(item);
             }
         }
 
@@ -1316,6 +1460,8 @@
         function checkAnswer(selectedIndex) {
             if (isWaitingFeedback) return; 
 
+            const session = quizSession;
+
             const currentItem = quizQueue[0];
             const chosenOption = currentOptions[selectedIndex];
             const isCorrect = (chosenOption.word === currentItem.word);
@@ -1340,6 +1486,7 @@
                 buttons.forEach(btn => btn.disabled = true);
 
                 setTimeout(() => {
+                    if (session !== quizSession) return;
                     buttons[selectedIndex].classList.remove("correct-glow-element");
                     quizQueue.shift(); 
                     renderQuizQuestion();
@@ -1381,6 +1528,10 @@
         }
 
         function proceedAfterFeedback() {
+            if (currentMode === "spelling") {
+                if (!spellingReviewPending) return;
+                spellingReviewPending = false;
+            }
             if (quizQueue.length > 0) {
                 const failedItem = quizQueue.shift(); 
                 quizQueue.push(failedItem);           
@@ -1479,6 +1630,7 @@
 
         // ================= 16. 輔助控制按鈕 =================
         function exitToSetup() {
+            resetQuizInteraction();
             switchScreen("screenSetup");
             updatePoolCount();
         }
