@@ -46,7 +46,7 @@ const rows = [
                 // Let the existing 3D transition finish before capturing a face.
                 await page.locator('#fcCardInner').evaluate(e => Promise.all(e.getAnimations().map(a => a.finished.catch(() => {}))));
                 await page.evaluate(() => window.scrollTo(0, 0));
-                await page.screenshot({ path: path.join(output, `${width}-${name}.png`), fullPage: true });
+                await page.screenshot({ path: path.join(output, `${width}-${name}.png`), fullPage: true, animations: 'disabled' });
                 if (!baseline) {
                     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
                     assert.equal(overflow, false, `${width} ${name}: horizontal overflow`);
