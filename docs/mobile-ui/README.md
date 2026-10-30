@@ -1,6 +1,6 @@
 # 手機閱讀與操作驗收
 
-基準：`main` 的 `521cb51`（包含 PR #8）。本次只修改 `index.html` 的呈現樣式與翻卡操作提示；JavaScript、題庫、五模式順序及判題流程均保持不變。
+基準：`main` 的 `521cb51`（包含 PR #8）。原版閱讀調整修改 `index.html` 的呈現樣式與翻卡操作提示；後續 Android 鍵盤修正另調整手機拼字焦點與捲動，題庫、五模式順序及判題流程均保持不變。
 
 ## 原有問題與調整
 
@@ -45,10 +45,26 @@ Playwright 使用相同固定測試資料與隨機種子。每組包含 320、37
 - `node --test tests/spelling.test.cjs`：13/13 通過。
 - `node tests/browser.cjs`：既有完整瀏覽器回歸通過，包括五模式、冊課篩選、同義字處理、錯題及目標字重練、計分、連點競態與空題庫。
 - `node tests/mobile-ui.cjs`：320/375/390/1280px 全部通過；檢查頁面水平溢出、主要文字裁切、卡片翻面與例句捲動、背面區塊無重疊、選項及提示字級、音訊觸控範圍、同義字後重練與結算數值，以及頁面 JavaScript 錯誤。每尺寸也縮至 360px 高，實際捲到拼字送出鈕並點擊。
-- 原版與修改版 `<script>` 內容逐字比較相同；`git diff --check` 通過。
+- 原版閱讀調整的 `<script>` 內容逐字相同；後續鍵盤修正僅增加焦點／viewport 呈現處理。`git diff --check` 通過。
 - 已人工開啟檢視窄螢幕首頁、單字卡、長字／片語、英選中、克漏字、拼字重練、解析與結算，以及桌面背面截圖。自動斷言不取代截圖審查。
 
 測試沿用既有 Playwright／Chrome，不新增應用程式依賴或 CI。若已有 Playwright，可設定 `PLAYWRIGHT_MODULE` 指向該模組。產生前版截圖時，將基準 HTML 匯出到本機檔案，設定 `HTML_PATH` 與 `UI_BASELINE=1` 再執行 `tests/mobile-ui.cjs`；`SCREENSHOT_DIR` 可另外指定輸出目錄。測試會確認 Tailwind CDN 已載入，避免在無樣式狀態產生誤導截圖。
+
+## Android Chrome／Gboard 鍵盤遮擋修正
+
+實機回報的原因是 `focus({ preventScroll: true })` 禁止原生焦點捲動，且手機拼字仍沿用外卡片 500px 最小高度、`quizContentArea` 的自動邊距／垂直置中。文字與按鈕放大後，輸入區更容易落在鍵盤下方。Android Chrome 預設只縮小 visual viewport，既有縮小整個 viewport 並由 Playwright 主動捲到按鈕的檢查不足以涵蓋此情況（[Chrome 說明](https://developer.chrome.com/blog/viewport-resize-behavior)）。
+
+- 手機拼字表單顯示時取消最小高度及垂直置中，內容從上方自然排列；保留全頁捲動。
+- 保留每題自動聚焦，手機允許原生焦點捲動，桌面保留 `preventScroll`。
+- 換題、focus／blur、window／visual viewport resize 後等待 120ms，再依可見區高度與 offsetTop 檢查輸入框；只有被裁切才補正。題目與輸入框放得下時一併保留，長題目優先完整顯示輸入框。
+- 依鍵盤遮擋高度提供頁尾捲動空間，讓送出鈕可正常捲上來；收起鍵盤或離開輸入區後清除。沒有 input 或 scroll 事件校正，打字與手動捲動不會反覆被拉回。
+- 未修改判題、計分、題庫、音效、資料載入及其他模式；未新增依賴或 GitHub Actions。
+
+新增 `node tests/mobile-keyboard.cjs`：320／375／390px 保留 740px layout viewport，模擬 visual viewport 縮至 340px／帶 35px 偏移的 280px。涵蓋自動聚焦、完整輸入框、可讀題目、逐字輸入不捲動、連續正確換題、一般滾輪少量捲動點送出、同義字回饋及目標字重練、錯題解析後續答、長題目、鍵盤收合、layout viewport 同步縮小與返回首頁；1280px 檢查不介入桌面捲動。測試避免用 Playwright 自動捲動掩蓋輸入區問題。
+
+修正前的 `17551c2` 執行新檢查會失敗：320px 的輸入框落在 y=428.89–482.89，可見高度只有 340px。修正後新檢查通過；13/13 單元測試、既有 `browser.cjs` 與 `mobile-ui.cjs`（320／375／390／1280px）通過。既有 112 張截圖是原閱讀調整的歷史紀錄，未重新覆寫；此次重跑 UI 截圖另存暫存目錄。
+
+此測試模擬 viewport 幾何與事件，沒有真正喚起 Android／Gboard。仍需 Android Chrome 實機確認：進入拼字、連續答對、錯題解析、同義字後重練、按鈕與 Enter 送出、收起鍵盤後恢復版面。
 
 ## 仍需簡短手機人工驗收
 

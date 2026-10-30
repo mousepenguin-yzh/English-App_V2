@@ -133,6 +133,19 @@
             header p { font-size: 12px !important; }
             header > div > div:first-child > div:first-child { width: 32px; height: 36px; flex-shrink: 0; }
             main { padding: 12px 8px; align-items: flex-start; }
+            /* Keep spelling in document flow, with room to scroll above an OSK
+               that shrinks only the visual viewport (Android Chrome). */
+            main:has(#screenQuiz:not(.hidden) #spellingForm:not(.hidden)) {
+                align-items: flex-start;
+                padding-bottom: calc(12px + var(--spelling-keyboard-inset, 0px));
+            }
+            main > div:has(#screenQuiz:not(.hidden) #spellingForm:not(.hidden)) { min-height: 0; }
+            #screenQuiz:has(#spellingForm:not(.hidden)),
+            #screenQuiz:has(#spellingForm:not(.hidden)) #quizContentArea {
+                flex-grow: 0;
+                justify-content: flex-start;
+            }
+            #screenQuiz:has(#spellingForm:not(.hidden)) #quizContentArea { margin-block: 0; }
             #screenSetup, #screenFlashcard, #screenQuiz, #screenSummary { padding: 16px 12px; }
             main :is(.text-xs, .text-\[11px\], .text-\[10px\]) {
                 font-size: 14px;
@@ -1454,7 +1467,7 @@
                 spellingReviewPending = false;
                 document.getElementById("spellingStatus").innerText = "";
                 updateSpellingSubmit();
-                input.focus({ preventScroll: true });
+                focusSpellingInput(input);
             }
 
             if (currentMode === "en-ch") {
@@ -1486,6 +1499,50 @@
                 wordText.innerText = clozeSentence;
                 renderOptionButtons(currentOptions.map(o => o.word));
             }
+        }
+
+        // No input/scroll listener: typing and manual reading must not move the
+        // page. Resize is debounced until keyboard animation has settled.
+        let spellingViewportTimer;
+        let spellingViewportListening = false;
+        function focusSpellingInput(input) {
+            if (!spellingViewportListening) {
+                const schedule = () => {
+                    clearTimeout(spellingViewportTimer);
+                    spellingViewportTimer = setTimeout(positionSpellingInput, 120);
+                };
+                window.visualViewport?.addEventListener('resize', schedule);
+                window.addEventListener('resize', schedule);
+                input.addEventListener('focus', schedule);
+                input.addEventListener('blur', schedule);
+                spellingViewportListening = true;
+            }
+            input.focus({ preventScroll: !window.matchMedia('(max-width: 767px)').matches });
+            clearTimeout(spellingViewportTimer);
+            spellingViewportTimer = setTimeout(positionSpellingInput, 120);
+        }
+
+        function positionSpellingInput() {
+            const main = document.querySelector('main');
+            const input = document.getElementById('spellingAnswer');
+            const viewport = window.visualViewport;
+            const active = window.matchMedia('(max-width: 767px)').matches &&
+                document.activeElement === input && input.getClientRects().length &&
+                !document.getElementById('screenQuiz').classList.contains('hidden');
+            const inset = active && viewport ? Math.max(0, innerHeight - viewport.height) : 0;
+            main.style.setProperty('--spelling-keyboard-inset', `${inset}px`);
+            if (!active) return;
+            const top = viewport?.offsetTop || 0;
+            const bottom = top + (viewport?.height || innerHeight);
+            const box = input.getBoundingClientRect();
+            // Let native focus scrolling work first; only correct actual clipping.
+            if (box.top >= top + 12 && box.bottom <= bottom - 12) return;
+            const question = document.getElementById('quizContentArea').getBoundingClientRect();
+            // Include the prompt whenever it fits, otherwise prioritize the input.
+            const target = box.bottom - question.top <= bottom - top - 24
+                ? question.top - top - 12
+                : box.bottom - bottom + 12;
+            window.scrollBy({ top: target, behavior: 'instant' });
         }
 
         function resetQuizInteraction() {
