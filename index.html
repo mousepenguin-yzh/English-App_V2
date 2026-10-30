@@ -195,19 +195,6 @@
 
                             <!-- 模式 4 -->
                             <label class="block cursor-pointer group">
-                                <input type="radio" name="mode" value="cloze" class="sr-only peer" onchange="handleModeChange()">
-                                <div class="p-3 sm:p-4 bg-slate-800/50 border border-slate-800 rounded-2xl peer-checked:border-teal-400 peer-checked:bg-teal-500/5 group-hover:bg-slate-800 transition-all">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">📝</div>
-                                        <div>
-                                            <p class="font-bold text-sm sm:text-base text-slate-200">例句克漏字大考驗</p>
-                                            <p class="text-[11px] sm:text-xs text-amber-400">適合高年級！自動鎖定並限用 B5、B6、高階單字範圍 (自動過濾片語)</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </label>
-                            <!-- 模式 5 -->
-                            <label class="block cursor-pointer group">
                                 <input type="radio" name="mode" value="spelling" class="sr-only peer" onchange="handleModeChange()">
                                 <div class="p-3 sm:p-4 bg-slate-800/50 border border-slate-800 rounded-2xl peer-checked:border-teal-400 peer-checked:bg-teal-500/5 group-hover:bg-slate-800 transition-all">
                                     <div class="flex items-center gap-3">
@@ -219,7 +206,21 @@
                                     </div>
                                 </div>
                             </label>
-                            <p id="spellingNotice" class="hidden text-xs text-amber-400 leading-relaxed">拼字模式排除義項與詞性重疊及不明確格式；僅接受已確認的完整變體。下方顯示實際可用題數，請依題目說明拼寫。</p>
+
+                            <!-- 模式 5 -->
+                            <label class="block cursor-pointer group">
+                                <input type="radio" name="mode" value="cloze" class="sr-only peer" onchange="handleModeChange()">
+                                <div class="p-3 sm:p-4 bg-slate-800/50 border border-slate-800 rounded-2xl peer-checked:border-teal-400 peer-checked:bg-teal-500/5 group-hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">📝</div>
+                                        <div>
+                                            <p class="font-bold text-sm sm:text-base text-slate-200">例句克漏字大考驗</p>
+                                            <p class="text-[11px] sm:text-xs text-amber-400">適合高年級！自動鎖定並限用 B5、B6、高階單字範圍 (自動過濾片語)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            <p id="spellingNotice" class="hidden text-xs text-amber-400 leading-relaxed">拼字模式優先使用經審核的明確提示；合理替代答案會獲得肯定，再練習原目標字。下方顯示實際可用題數。</p>
                         </div>
 
                         <!-- 右側：範圍與題數 -->
@@ -424,10 +425,14 @@
                             aria-describedby="spellingHelp spellingStatus" oninput="updateSpellingSubmit()"
                             onkeydown="if (event.key === 'Enter' && (event.repeat || event.isComposing || event.keyCode === 229)) event.preventDefault()"
                             class="w-full min-w-0 p-3.5 bg-slate-800 border border-slate-700 rounded-xl text-base text-white focus:outline-none focus:ring-2 focus:ring-teal-400">
-                        <p id="spellingHelp" class="text-xs text-slate-400">不分大小寫，忽略首尾空白；撇號可用彎／直形，其餘字母、空格及連字號須正確。</p>
-                        <p id="spellingStatus" role="status" aria-live="polite" class="text-sm text-emerald-400"></p>
+                        <p id="spellingHelp" class="text-xs text-slate-400 break-words">不分大小寫，忽略首尾空白；撇號可用彎／直形，其餘字母、空格及連字號須正確。</p>
+                        <p id="spellingStatus" role="status" aria-live="polite" class="text-sm text-emerald-400 break-words"></p>
                         <button id="spellingSubmit" type="submit" disabled class="w-full min-h-[52px] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all">送出答案</button>
                     </form>
+                    <div id="spellingAlternativeFeedback" class="hidden space-y-4 rounded-xl border border-emerald-500 p-4">
+                        <p id="spellingAlternativeMessage" role="status" aria-live="polite" class="text-emerald-300 leading-relaxed break-words"></p>
+                        <button id="spellingAlternativeContinue" type="button" onclick="proceedAfterFeedback()" class="w-full min-h-[52px] py-3 rounded-xl bg-emerald-700 text-white font-bold">繼續練習</button>
+                    </div>
 
                     <!-- 選項按鈕區 (四選一) -->
                     <div id="optionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -464,12 +469,12 @@
                     <!-- 指標一：初始正確率 -->
                     <div class="bg-gradient-to-b from-slate-800/80 to-slate-900/40 border border-slate-800 rounded-2xl p-4 sm:p-6 text-center flex flex-col items-center justify-center relative overflow-hidden">
                         <div class="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl"></div>
-                        <span class="text-[10px] sm:text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">🎯 第一波初始正確率</span>
+                        <span id="initialAccuracyLabel" class="text-[10px] sm:text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">🎯 第一波初始正確率</span>
                         <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-8 border-slate-850 flex items-center justify-center relative mb-3">
                             <span class="text-2xl sm:text-3xl font-black text-emerald-400" id="initialAccuracyScore">0%</span>
                         </div>
                         <p class="text-slate-300 text-xs sm:text-sm font-semibold">首戰得分</p>
-                        <p class="text-[10px] sm:text-xs text-slate-400 mt-1 max-w-[200px] leading-relaxed">僅統計每個單字「第一次」回答的對錯表現。</p>
+                        <p id="initialAccuracyHelp" class="text-[10px] sm:text-xs text-slate-400 mt-1 max-w-[200px] leading-relaxed">僅統計每個單字「第一次」回答的對錯表現。</p>
                     </div>
 
                     <!-- 指標二：清空難題的總戰鬥力 -->
@@ -478,7 +483,7 @@
                         <span class="text-[10px] sm:text-xs text-indigo-400 font-bold uppercase tracking-wider mb-2">🔥 奮戰到最後的毅力</span>
                         <div class="text-4xl sm:text-5xl font-black text-indigo-400 my-4 sm:my-6" id="totalAttemptsValue">0 次</div>
                         <p class="text-slate-300 text-xs sm:text-sm font-semibold">總計作答次數</p>
-                        <p class="text-[10px] sm:text-xs text-slate-400 mt-1 max-w-[200px] leading-relaxed">包含重新練習錯題，妳沒有放棄任何一題！</p>
+                        <p id="totalAttemptsHelp" class="text-[10px] sm:text-xs text-slate-400 mt-1 max-w-[200px] leading-relaxed">包含重新練習錯題，妳沒有放棄任何一題！</p>
                     </div>
                 </div>
 
@@ -1037,6 +1042,48 @@
             return spellingAnswerSpec(item)?.answers.includes(normalizeSpellingAnswer(answer)) || false;
         }
 
+        // 逐筆語意審核，非自動尋找「字面不重複」的義項。來源義項集合與單一詞性
+        // 必須完全吻合；prompt 只能取自原資料。詳見 docs/spelling-review.md。
+        const SPELLING_PROMPT_REVIEWS = [
+            { word: 'class', translation: '班級;課程', pos: 'n.', prompt: '班級', alternatives: [] },
+            { word: 'heavy', translation: '大量的;重的', pos: 'adj.', prompt: '重的', alternatives: [] },
+            { word: 'cell', translation: '細胞;手機;牢房', pos: 'n.', prompt: '細胞', alternatives: [] },
+            ...['beautiful', 'pretty', 'lovely'].map(word => ({ word, pos: 'adj.',
+                translation: { beautiful: '漂亮的;美麗的', pretty: '漂亮的', lovely: '討人喜歡的;漂亮的' }[word],
+                prompt: word === 'beautiful' ? '漂亮的;美麗的' : '漂亮的',
+                alternatives: ['beautiful', 'pretty', 'lovely'].filter(answer => answer !== word) })),
+            ...[
+                { words: ['smart', 'clever', 'intelligent'], pos: 'adj.', translation: '聰明的' },
+                { words: ['sofa', 'couch'], pos: 'n.', translation: '沙發' },
+                { words: ['trash', 'garbage'], pos: 'n.', translation: '垃圾' },
+                { words: ['movie theater', 'cinema'], pos: 'n.', translation: '電影院' },
+                { words: ['yummy', 'delicious'], pos: 'adj.', translation: '美味的' }
+            ].flatMap(group => group.words.map(word => ({ word, pos: group.pos,
+                translation: group.translation, prompt: group.translation,
+                alternatives: group.words.filter(answer => answer !== word) })))
+        ];
+
+        function spellingPromptSpec(item) {
+            const reviews = SPELLING_PROMPT_REVIEWS.filter(entry => entry.word === normalizeSpellingAnswer(item.word));
+            const sameMeanings = (a, b) => JSON.stringify(spellingMeanings(a).sort()) ===
+                JSON.stringify(spellingMeanings(b).sort());
+            const review = reviews.find(entry => sameMeanings(item, entry) &&
+                JSON.stringify(spellingPartsOfSpeech(item)) === JSON.stringify([entry.pos]));
+            if (reviews.length && !review) return null; // 已審核來源變動，等待重新審核。
+            const target = spellingAnswerSpec(item);
+            if (!target) return null;
+            return { prompt: review?.prompt || item.translation,
+                alternatives: review?.alternatives || [], answers: target.answers };
+        }
+
+        function classifySpellingAnswer(item, answer) {
+            const spec = spellingPromptSpec(item);
+            const normalized = normalizeSpellingAnswer(answer);
+            if (spec?.answers.includes(normalized)) return 'target';
+            if (spec?.alternatives.includes(normalized)) return 'alternative';
+            return 'wrong';
+        }
+
         function filterSpellingWords(pool, allWords = database) {
             // 跨全題庫檢查相同義項及詞性，即使另一答案不在目前選取範圍也排除。
             const answersByPrompt = new Map();
@@ -1052,11 +1099,12 @@
             });
             const seen = new Set();
             return pool.filter(item => {
-                const spec = spellingAnswerSpec(item);
+                const spec = spellingPromptSpec(item);
                 if (!spec) return false;
-                const keys = promptKeys(item);
+                const keys = promptKeys({ ...item, translation: spec.prompt });
+                const accepted = [...spec.answers, ...spec.alternatives];
                 if (!keys.length || keys.some(key => [...(answersByPrompt.get(key) || [])]
-                    .some(answer => !spec.answers.includes(answer)))) return false;
+                    .some(answer => !accepted.includes(answer)))) return false;
                 const key = getQuestionKey({ ...item, word: normalizeSpellingAnswer(item.word) });
                 if (seen.has(key)) return false;
                 seen.add(key);
@@ -1267,6 +1315,7 @@
 
             isWaitingFeedback = false;
             document.getElementById("feedbackBoard").classList.add("hidden");
+            document.getElementById("spellingAlternativeFeedback").classList.add("hidden");
             document.getElementById("optionsGrid").classList.remove("hidden");
 
             const currentItem = quizQueue[0];
@@ -1298,10 +1347,15 @@
 
             if (spelling) {
                 badge.innerText = "中翻英拼字測驗";
-                wordText.innerText = currentItem.translation;
+                wordText.innerText = spellingPromptSpec(currentItem).prompt;
                 document.getElementById('spellingHelp').innerText =
                     spellingAnswerSpec(currentItem)?.help ||
                     '不分大小寫，忽略首尾空白；撇號可用彎／直形，其餘字母、空格及連字號須正確。';
+                if (currentItem.spellingTargetReview) {
+                    document.getElementById('spellingHelp').innerText = currentItem.spellingRevealTarget
+                        ? `目標字重練：請照著拼出 ${currentItem.word}，完成這個字的練習。`
+                        : `目標字重練：這次請拼出 ${currentItem.word[0]} 開頭、共 ${currentItem.word.length} 個字元的目標字；其他同義字不再延後。`;
+                }
                 speakBtn.classList.add("hidden");
                 const input = document.getElementById("spellingAnswer");
                 input.value = "";
@@ -1370,7 +1424,8 @@
             const history = quizHistory[getQuestionKey(item)];
             quizTotalAttemptsCount++;
             history.totalAttempts++;
-            const correct = isCorrectSpellingAnswer(item, answer);
+            const outcome = classifySpellingAnswer(item, answer);
+            const correct = outcome === 'target';
             if (item.isFirstAttempt) {
                 history.firstAttemptCorrect = correct;
                 if (correct) firstAttemptCorrectCount++;
@@ -1384,8 +1439,22 @@
                     quizQueue.shift();
                     renderQuizQuestion();
                 }, 800);
+            } else if (outcome === 'alternative') {
+                sfx.playCorrect();
+                const retry = item.spellingTargetReview;
+                spellingReviewPending = retry ? 'alternative-retry' : 'alternative-requeue';
+                item.spellingTargetReview = true;
+                if (retry) item.spellingRevealTarget = true;
+                input.blur();
+                document.getElementById('spellingForm').classList.add('hidden');
+                document.getElementById('spellingAlternativeFeedback').classList.remove('hidden');
+                document.getElementById('spellingAlternativeMessage').innerText = retry
+                    ? `${answer} 也是正確的英文！這次要練習的是 ${item.word}。請看清楚目標字，接著照著拼一次，不會再排到隊尾。`
+                    : `${answer} 也是正確的英文！不過這題原本要練習的是 ${item.word}，最後會再考一次喔！`;
+                document.getElementById('spellingAlternativeContinue').focus({ preventScroll: true });
             } else {
                 sfx.playWrong();
+                if (item.spellingTargetReview) item.spellingRevealTarget = true;
                 spellingReviewPending = true;
                 input.blur();
                 document.getElementById("spellingForm").classList.add("hidden");
@@ -1569,11 +1638,13 @@
         }
 
         function proceedAfterFeedback() {
+            let requeue = true;
             if (currentMode === "spelling") {
                 if (!spellingReviewPending) return;
+                requeue = spellingReviewPending !== 'alternative-retry';
                 spellingReviewPending = false;
             }
-            if (quizQueue.length > 0) {
+            if (requeue && quizQueue.length > 0) {
                 const failedItem = quizQueue.shift(); 
                 quizQueue.push(failedItem);           
             }
@@ -1587,6 +1658,14 @@
             const accuracyScore = Math.round((firstAttemptCorrectCount / originalQuizCount) * 100);
             document.getElementById("initialAccuracyScore").innerText = `${accuracyScore}%`;
             document.getElementById("totalAttemptsValue").innerText = `${quizTotalAttemptsCount} 次`;
+            const spelling = currentMode === 'spelling';
+            document.getElementById('initialAccuracyLabel').innerText = spelling ? '🎯 首次目標拼寫正確率' : '🎯 第一波初始正確率';
+            document.getElementById('initialAccuracyHelp').innerText = spelling
+                ? '僅計首次拼出目標字；合理替代答案不算拼錯，但不計入此比率。'
+                : '僅統計每個單字「第一次」回答的對錯表現。';
+            document.getElementById('totalAttemptsHelp').innerText = spelling
+                ? '每次有效送出均計數，包含合理替代答案及後續重練。'
+                : '包含重新練習錯題，妳沒有放棄任何一題！';
 
             const banner = document.getElementById("perseveranceBanner");
             if (accuracyScore >= 80) {
@@ -1598,6 +1677,9 @@
                 document.getElementById("summaryTitle").innerText = "恭喜挑戰成功！戰勝困難！🔥";
                 banner.innerHTML = `💪 <strong class="text-indigo-300">總計挑戰了 ${quizTotalAttemptsCount} 次！</strong> 雖然一開始有些挫折，但妳堅持到底，消滅了所有錯題庫，完成了 100% 的自我超越！阿晴，不放棄的毅力比天才更強大！`;
                 sfx.playCorrect();
+            }
+            if (currentMode === 'spelling') {
+                banner.innerText = `完成所有目標字！首次目標拼寫正確率 ${accuracyScore}%。共作答 ${quizTotalAttemptsCount} 次，包含已確認的替代答案與重練；後續答對不回補首次正確率。`;
             }
         }
 
