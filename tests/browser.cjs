@@ -14,7 +14,7 @@ const fixture = [
     "don't,不要,aux.,B1,2,Don't run.,不要跑。",
     'beautiful,漂亮的,adj.,B1,1,,',
     'pretty,漂亮的,adj.,B6,1,,',
-    'autumn / fall,秋天,n.,B1,1,,',
+    'may / might,可能,aux.,B1,1,,',
     'pear,梨子,n.,B5,1,A pear.,一顆梨。',
     'well-known,知名的,adj.,B6,2,A well-known singer.,知名歌手。',
 ].join('\n');
@@ -176,10 +176,71 @@ const fixture = [
         const submitBox = await page.locator('#spellingSubmit').boundingBox();
         assert.ok(inputBox.width > 200 && submitBox.height >= 48);
         await page.screenshot({ path: process.env.SCREENSHOT_PATH || path.join(require('node:os').tmpdir(), 'english-spelling-mobile.png'), fullPage: true });
-        // All-unsafe scopes must stay on setup and never create a zero-question quiz.
+        // Every recovered format completes through the real UI, including a wrong
+        // first answer, feedback, requeue, alternate spelling and unchanged scoring.
         await exit();
+        const recovered = [
+            { word: 'o’clock', translation: '點鐘', part_of_speech: 'adv.', answer: "O'CLOCK" },
+            { word: 'a.m.', translation: '上午;凌晨', part_of_speech: 'adv.', answer: 'AM' },
+            { word: 'p.m.', translation: '下午;晚上', part_of_speech: 'adv.', answer: 'PM' },
+            { word: 'autumn / fall', translation: '秋天', part_of_speech: 'n.', answer: 'fall' },
+            { word: 'everyone (everybody)', translation: '每個人;各位', part_of_speech: 'pron.', answer: 'everybody' },
+            { word: 'though / although', translation: '雖然', part_of_speech: 'conj.', answer: 'although' },
+            ...['Nice to meet you.', 'I see.', 'Guess what?', 'Hurry up.', 'Good job!', 'Excuse me.']
+                .map(word => ({ word, translation: word, part_of_speech: 'phr.', answer: word.slice(0, -1) }))
+        ];
+        await page.evaluate(rows => {
+            database = rows.map(({ answer, ...row }) => ({ ...row, level: 'B1', lesson: '1' }));
+            renderLevelSelectors(); handleModeChange(); toggleSelectAll({ checked: true });
+        }, recovered);
+        assert.equal(await page.locator('#wordPoolCount').innerText(), '12');
+        await start();
+        for (let i = 0; i < recovered.length; i++) {
+            const current = (await state()).queue[0];
+            const item = recovered.find(row => row.word === current);
+            if (current === 'a.m.' || current === 'p.m.') assert.match(await page.locator('#spellingHelp').innerText(), /時間縮寫/);
+            if (current.includes('/') || current.includes('(')) assert.match(await page.locator('#spellingHelp').innerText(), /任一完整英文變體/);
+            for (const width of [320, 375]) {
+                await page.setViewportSize({ width, height: 667 });
+                assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+            }
+            if (current === 'everyone (everybody)') {
+                const screenshot = process.env.SCREENSHOT_PATH || path.join(require('node:os').tmpdir(), 'english-spelling-mobile.png');
+                await page.screenshot({ path: screenshot.replace(/\.png$/, '-variants.png'), fullPage: true });
+            }
+            // Remove a letter from an otherwise accepted spelling.
+            await answer(item.answer.slice(1));
+            assert.equal(await page.locator('#feedbackBoard').isVisible(), true);
+            assert.equal(await page.locator('#feedbackCorrectWord').innerText(), current);
+            await page.locator('[onclick="proceedAfterFeedback()"]').click();
+            assert.equal((await state()).queue.at(-1), current);
+        }
+        for (let i = 0; i < recovered.length; i++) {
+            const current = (await state()).queue[0];
+            await answer(` ${recovered.find(row => row.word === current).answer} `);
+            await advance();
+        }
+        assert.equal(await page.locator('#initialAccuracyScore').innerText(), '0%');
+        assert.equal(await page.locator('#totalAttemptsValue').innerText(), '24 次');
+        assert.ok((await state()).histories.every(history => history.totalAttempts === 2));
+        await page.evaluate(() => restartSameAdventure());
+        assert.equal((await state()).attempts, 0);
+        assert.equal((await state()).count, 12);
+        for (let i = 0; i < recovered.length; i++) {
+            const accepted = await page.evaluate(() => spellingAnswerSpec(quizQueue[0]).answers[0]);
+            await answer(accepted.toUpperCase());
+            await advance();
+        }
+        assert.equal(await page.locator('#initialAccuracyScore').innerText(), '100%');
+        assert.equal(await page.locator('#totalAttemptsValue').innerText(), '12 次');
+        await exit();
+        await mode('flashcard'); await all(); await start();
+        assert.equal(await page.locator('#screenFlashcard').isVisible(), true);
+        assert.equal(await page.evaluate(() => database.length), 12);
+        await exit(); await mode('spelling');
+        // All-unsafe scopes must stay on setup and never create a zero-question quiz.
         await page.evaluate(() => {
-            database = [database.find(x => x.word === 'autumn / fall')];
+            database = [{ word: 'may / might', translation: '可能;也許', part_of_speech: 'aux.', level: 'B1', lesson: '1' }];
             renderLevelSelectors(); handleModeChange(); startAdventure();
         });
         assert.equal(await page.locator('#wordPoolCount').innerText(), '0');
@@ -196,7 +257,8 @@ const fixture = [
             await start();
             const count = (await state()).count;
             for (let i = 0; i < count; i++) {
-                await answer(` ${(await state()).queue[0].toUpperCase()} `);
+                const accepted = await page.evaluate(() => spellingAnswerSpec(quizQueue[0]).answers[0]);
+                await answer(` ${accepted.toUpperCase()} `);
                 await advance();
             }
             assert.equal(await page.locator('#initialAccuracyScore').innerText(), '100%');
