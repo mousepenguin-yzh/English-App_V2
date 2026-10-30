@@ -12,8 +12,8 @@ const fixture = [
     'apple,蘋果,n.,B1,1,An apple.,一顆蘋果。',
     'ice cream,冰淇淋,n.,B1,2,Ice cream is cold.,冰淇淋是冷的。',
     "don't,不要,aux.,B1,2,Don't run.,不要跑。",
-    'beautiful,漂亮的,adj.,B1,1,,',
-    'pretty,漂亮的,adj.,B6,1,,',
+    'unreviewedbeauty,漂亮的,adj.,B1,1,,',
+    'unreviewedpretty,漂亮的,adj.,B6,1,,',
     'may / might,可能,aux.,B1,1,,',
     'pear,梨子,n.,B5,1,A pear.,一顆梨。',
     'well-known,知名的,adj.,B6,2,A well-known singer.,知名歌手。',
@@ -34,6 +34,8 @@ const fixture = [
         await page.route('https://docs.google.com/**', route => route.fulfill({ body: fixture }));
         await page.goto(`http://127.0.0.1:${server.address().port}`, { waitUntil: 'networkidle' });
         await page.waitForSelector('#screenSetup:not(.hidden)');
+        assert.deepEqual(await page.locator('input[name="mode"]').evaluateAll(inputs => inputs.map(x => x.value)),
+            ['flashcard', 'en-ch', 'ch-en', 'spelling', 'cloze']);
         await page.evaluate(() => {
             sfx.muted = true;
             window.spokenWords = [];
@@ -121,7 +123,7 @@ const fixture = [
         await start();
         for (let i = 0; i < 2; i++) {
             await answer(i ? 'apple.' : 'appl');
-            await page.locator('[onclick="proceedAfterFeedback()"]').click();
+            await page.locator('#feedbackBoard [onclick="proceedAfterFeedback()"]').click();
             assert.deepEqual((await state()).queue, ['apple']);
         }
         await answer(' APPLE '); await advance();
@@ -212,7 +214,7 @@ const fixture = [
             await answer(item.answer.slice(1));
             assert.equal(await page.locator('#feedbackBoard').isVisible(), true);
             assert.equal(await page.locator('#feedbackCorrectWord').innerText(), current);
-            await page.locator('[onclick="proceedAfterFeedback()"]').click();
+            await page.locator('#feedbackBoard [onclick="proceedAfterFeedback()"]').click();
             assert.equal((await state()).queue.at(-1), current);
         }
         for (let i = 0; i < recovered.length; i++) {
@@ -238,6 +240,106 @@ const fixture = [
         assert.equal(await page.locator('#screenFlashcard').isVisible(), true);
         assert.equal(await page.evaluate(() => database.length), 12);
         await exit(); await mode('spelling');
+        // Reviewed prompt recovery and synonym retry use the real submit/continue UI.
+        await page.evaluate(() => {
+            database = [
+                { word: 'beautiful', translation: '漂亮的;美麗的', part_of_speech: 'adj.' },
+                { word: 'apple', translation: '蘋果', part_of_speech: 'n.' },
+                { word: 'class', translation: '班級;課程', part_of_speech: 'n.' },
+                { word: 'pretty', translation: '漂亮的', part_of_speech: 'adj.', level: 'B6' },
+                { word: 'course', translation: '課程;路線', part_of_speech: 'n.', level: 'B6' }
+            ].map(row => ({ level: 'B1', lesson: '1', ...row }));
+            renderLevelSelectors(); handleModeChange(); toggleSelectAll({ checked: false });
+            const parent = document.querySelector('input[name="level"][value="B1"]');
+            parent.checked = true; parent.dispatchEvent(new Event('change')); updatePoolCount();
+            window.wrongSounds = 0;
+            const originalWrong = sfx.playWrong.bind(sfx);
+            sfx.playWrong = () => { window.wrongSounds++; originalWrong(); };
+        });
+        assert.equal(await page.locator('#wordPoolCount').innerText(), '3');
+        await start();
+        await page.evaluate(() => {
+            const order = ['beautiful', 'apple', 'class'];
+            quizQueue.sort((a, b) => order.indexOf(a.word) - order.indexOf(b.word)); renderQuizQuestion();
+        });
+        await answer(' PRETTY ');
+        assert.equal(await page.locator('#feedbackBoard').isVisible(), false);
+        assert.match(await page.locator('#spellingAlternativeMessage').innerText(), /pretty 也是正確的英文.*beautiful/);
+        assert.equal(await page.evaluate(() => window.wrongSounds), 0);
+        assert.equal((await state()).correct, 0);
+        for (const width of [320, 375]) {
+            await page.setViewportSize({ width, height: 667 });
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+            const button = await page.locator('#spellingAlternativeContinue').boundingBox();
+            assert.ok(button.height >= 48 && button.width > 200);
+        }
+        const screenshot = process.env.SCREENSHOT_PATH || path.join(require('node:os').tmpdir(), 'english-spelling-mobile.png');
+        await page.screenshot({ path: screenshot.replace(/\.png$/, '-synonym.png'), fullPage: true });
+        await page.locator('#spellingAlternativeContinue').click();
+        await page.evaluate(() => proceedAfterFeedback()); // Duplicate continue is ignored.
+        assert.deepEqual((await state()).queue, ['apple', 'class', 'beautiful']);
+        await answer('apple'); await advance();
+        assert.equal(await page.locator('#questionText').innerText(), '班級');
+        await answer('claz');
+        assert.equal(await page.evaluate(() => window.wrongSounds), 1);
+        await page.locator('#feedbackBoard [onclick="proceedAfterFeedback()"]').click();
+        assert.match(await page.locator('#spellingHelp').innerText(), /目標字重練.*b 開頭/);
+        for (let i = 0; i < 2; i++) {
+            await answer('pretty');
+            assert.equal(await page.locator('#feedbackBoard').isVisible(), false);
+            await page.locator('#spellingAlternativeContinue').click();
+            assert.deepEqual((await state()).queue, ['beautiful', 'class']);
+            assert.match(await page.locator('#spellingHelp').innerText(), /照著拼出 beautiful/);
+        }
+        assert.equal(await page.evaluate(() => window.wrongSounds), 1);
+        await page.screenshot({ path: screenshot.replace(/\.png$/, '-target-retry.png'), fullPage: true });
+        await answer('beautiful'); await advance();
+        await answer('class'); await advance();
+        assert.equal(await page.locator('#initialAccuracyScore').innerText(), '33%');
+        assert.equal(await page.locator('#totalAttemptsValue').innerText(), '7 次');
+        assert.match(await page.locator('#perseveranceBanner').innerText(), /首次目標拼寫正確率.*替代答案與重練/);
+        assert.equal((await state()).histories.reduce((sum, row) => sum + row.totalAttempts, 0), 7);
+        await page.evaluate(() => restartSameAdventure());
+        assert.equal((await state()).attempts, 0);
+        assert.equal(await page.evaluate(() => quizQueue.some(row => row.spellingTargetReview)), false);
+        await exit();
+        // Exercise all 17 restored rows, including every narrowed prompt and every
+        // synonym group. Only the three prompts without alternatives score first-correct.
+        await page.evaluate(() => {
+            database = SPELLING_PROMPT_REVIEWS.map(row => ({ word: row.word,
+                translation: row.translation, part_of_speech: row.pos, level: 'B1', lesson: '1' }));
+            renderLevelSelectors(); handleModeChange(); toggleSelectAll({ checked: true });
+        });
+        assert.equal(await page.locator('#wordPoolCount').innerText(), '17');
+        await start();
+        for (let i = 0; i < 17; i++) {
+            const spec = await page.evaluate(() => spellingPromptSpec(quizQueue[0]));
+            assert.equal(await page.locator('#questionText').innerText(), spec.prompt);
+            if (spec.alternatives.length) {
+                await answer(spec.alternatives[0]);
+                await page.evaluate(() => submitSpellingAnswer({ preventDefault() {} }));
+                assert.equal((await state()).attempts, i + 1);
+                await page.locator('#spellingAlternativeContinue').click();
+            } else {
+                await answer(spec.answers[0]); await advance();
+            }
+        }
+        assert.equal((await state()).queue.length, 14);
+        // A genuine miss on target review keeps the existing wrong-feedback path,
+        // then reveals the full target. Queue size never grows.
+        const reviewedTarget = (await state()).queue[0];
+        await answer('misspelled');
+        await page.locator('#feedbackBoard [onclick="proceedAfterFeedback()"]').click();
+        assert.equal((await state()).queue.at(-1), reviewedTarget);
+        for (let i = 0; i < 14; i++) {
+            const current = (await state()).queue[0];
+            if (current === reviewedTarget) assert.match(await page.locator('#spellingHelp').innerText(), /照著拼出/);
+            await answer(current); await advance();
+        }
+        assert.equal(await page.locator('#initialAccuracyScore').innerText(), '18%');
+        assert.equal(await page.locator('#totalAttemptsValue').innerText(), '32 次');
+        assert.equal((await state()).histories.reduce((sum, row) => sum + row.totalAttempts, 0), 32);
+        await exit();
         // All-unsafe scopes must stay on setup and never create a zero-question quiz.
         await page.evaluate(() => {
             database = [{ word: 'may / might', translation: '可能;也許', part_of_speech: 'aux.', level: 'B1', lesson: '1' }];

@@ -12,6 +12,8 @@ const filter = vm.runInContext('filterSpellingWords', context);
 const parse = vm.runInContext('parseCSVToArray', context);
 const spec = vm.runInContext('spellingAnswerSpec', context);
 const correct = vm.runInContext('isCorrectSpellingAnswer', context);
+const promptSpec = vm.runInContext('spellingPromptSpec', context);
+const classify = vm.runInContext('classifySpellingAnswer', context);
 const word = (answer, translation = '測試', pos = 'n.', extra = {}) => ({
     word: answer, translation, part_of_speech: pos, level: 'B1', lesson: '1', ...extra
 });
@@ -114,12 +116,59 @@ test('accepted sets participate in full-database ambiguity checks without broad 
     assert.equal(JSON.stringify([alternate, fall]), before);
 });
 
-test('overlapping meanings and POS are excluded across the entire database', () => {
+test('reviewed synonyms are accepted across ranges, unreviewed overlaps remain excluded', () => {
     const rows = [word('beautiful', '美麗的;漂亮的', 'adj.'),
         word('pretty', '漂亮的；可愛的', 'adj.', { level: 'B6', lesson: '9' })];
-    assert.deepEqual(eligible(rows), []);
-    assert.deepEqual(eligible([rows[0]], rows), []);
+    assert.deepEqual(eligible(rows), ['beautiful']);
+    assert.deepEqual(eligible([rows[0]], rows), ['beautiful']);
+    assert.equal(classify(rows[0], 'pretty'), 'alternative');
+    assert.equal(promptSpec(rows[1]), null); // 未審核過的來源義項。
     assert.deepEqual(eligible([word('mark', '目標', 'n. / v.'), word('target', '目標', 'v.')]), []);
+    assert.deepEqual(eligible([word('problem', '問題'), word('question', '問題')]), []);
+});
+
+test('narrowed prompts use reviewed original meanings with a single POS and never mutate rows', () => {
+    for (const [target, source, pos, prompt, blocker, blockerSource] of [
+        ['class', '班級;課程', 'n.', '班級', 'course', '課程;路線'],
+        ['heavy', '大量的;重的', 'adj.', '重的', 'large', '大的;大量的'],
+        ['cell', '細胞;手機;牢房', 'n.', '細胞', 'cellphone', '手機']
+    ]) {
+        const item = word(target, source, pos);
+        const rows = [item, word(blocker, blockerSource, pos)];
+        const before = JSON.stringify(rows);
+        assert.ok(eligible([item], rows).includes(target));
+        assert.equal(promptSpec(item).prompt, prompt);
+        assert.equal(JSON.stringify(rows), before);
+        assert.equal(promptSpec(word(target, source + ';新增義項', pos)), null);
+        assert.equal(promptSpec(word(target, source, pos + ' / v.')), null);
+        assert.deepEqual(eligible([item], [...rows, word('unknown', prompt, pos)]), []);
+    }
+});
+
+test('every reviewed synonym remains prompt-bound, strict about spelling, POS and source changes', () => {
+    const reviews = vm.runInContext('SPELLING_PROMPT_REVIEWS', context);
+    assert.equal(reviews.length, 17);
+    for (const entry of reviews) {
+        const item = word(entry.word, entry.translation, entry.pos);
+        assert.equal(classify(item, ` ${entry.word.toUpperCase()} `), 'target');
+        for (const answer of entry.alternatives) {
+            assert.equal(classify(item, answer), 'alternative');
+            assert.equal(classify(item, answer + 'x'), 'wrong');
+        }
+        assert.equal(classify(item, 'other'), 'wrong');
+        assert.equal(promptSpec(word(entry.word, entry.translation, 'v.')), null);
+        assert.equal(promptSpec(word(entry.word, '變更過的中文', entry.pos)), null);
+    }
+    const pretty = word('pretty', '漂亮的', 'adj.');
+    assert.equal(classify(pretty, 'cute'), 'wrong');
+    assert.equal(classify(pretty, 'very'), 'wrong');
+    const lovely = word('lovely', '討人喜歡的;漂亮的', 'adj.');
+    assert.equal(promptSpec(lovely).prompt, '漂亮的');
+    assert.equal(classify(lovely, 'likable'), 'wrong');
+    const smart = word('smart', '聰明的', 'adj.');
+    assert.deepEqual(eligible([smart], [smart, word('wise', '聰明的', 'adj.')]), []);
+    assert.deepEqual(eligible([smart], [smart, word('unknown / clever', '聰明的', 'adj.')]), []);
+    assert.deepEqual(eligible([smart], [smart, word('unknown', '聰明的', 'n.')]), ['smart']);
 });
 
 test('unsafe alternative rows still disqualify conflicting prompts', () => {
