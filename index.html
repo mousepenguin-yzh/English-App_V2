@@ -69,6 +69,120 @@
             transform: rotateY(180deg);
             -webkit-transform: rotateY(180deg);
         }
+        /* Reading and touch hierarchy. Keep these scoped to learning content so
+           metadata and large headings retain their distinct sizes. */
+        main, main > div, #quizContentArea, .option-btn, .option-text {
+            min-width: 0;
+        }
+        #fcWord, #fcTranslation, #fcFrontThreeForms, #fcThreeForms,
+        #questionText, .option-text, #feedbackBoard, #spellingAlternativeFeedback {
+            overflow-wrap: anywhere;
+        }
+        button { touch-action: manipulation; }
+        button:focus-visible, input:focus-visible, label:has(input:focus-visible) {
+            outline: 2px solid #2dd4bf;
+            outline-offset: 3px;
+        }
+        #speechBtn, #sfxBtn, #quizSpeakBtn { min-width: 44px; min-height: 44px; }
+        #levelGrid label, #levelGrid button { min-height: 44px; }
+        #levelGrid button { min-width: 44px; }
+        #levelGrid input, #selectAllCheckbox { width: 18px; height: 18px; }
+        #levelGrid label { font-size: 16px; line-height: 1.5; }
+        #levelGrid label span { font-size: inherit; }
+        #optionsGrid .option-btn { font-size: 18px; line-height: 1.6; min-height: 56px; }
+        #quizContentArea > div:first-child:has(#quizSpeakBtn:not(.hidden)) #questionContainer {
+            padding-top: 44px;
+        }
+        #questionText { font-size: clamp(26px, 5vw, 36px); line-height: 1.5; }
+        #screenQuiz:has(#clozeTipContainer:not(.hidden)) #questionText {
+            font-size: clamp(22px, 4vw, 28px);
+            line-height: 1.65;
+            text-align: left;
+        }
+        #feedbackBoard { max-height: none; overflow: visible; line-height: 1.7; }
+        #feedbackCorrectWord { display: block; font-size: 24px; line-height: 1.5; }
+        #feedbackTranslation { display: block; margin-left: 0; }
+        #spellingAnswer { font-size: 18px; scroll-margin-block: 100px; }
+        #spellingSubmit { scroll-margin-block: 24px; }
+        @media (max-width: 767px) {
+            #spellingControls { display: flex; align-items: stretch; gap: 8px; }
+            #spellingControls #spellingAnswer { flex: 1; width: 0; }
+            #spellingControls #spellingSubmit { width: auto; flex: none; padding-inline: 12px; }
+        }
+        @media (min-width: 768px) {
+            #spellingControls { display: contents; }
+            #spellingSubmit { margin-top: 12px; }
+        }
+        #spellingHelp, #spellingStatus, #spellingAlternativeMessage { line-height: 1.7; }
+
+        /* Both faces size the same grid cell. Long translations grow the card;
+           examples keep their own scroll area without squeezing the heading. */
+        #screenFlashcard .perspective-1000 { height: auto; }
+        .card-inner { display: grid; height: auto; min-height: 380px; }
+        .card-front, .card-back {
+            position: relative;
+            inset: auto;
+            grid-area: 1 / 1;
+            height: auto;
+            min-width: 0;
+            gap: 20px;
+        }
+        .card-back > div:first-child > div:first-child { flex-wrap: wrap; gap: 8px; }
+        .card-back > div:nth-child(2) { max-height: 240px; flex-shrink: 0; }
+        #fcWord { font-size: clamp(32px, 6vw, 48px); line-height: 1.25; }
+        #fcTranslation { line-height: 1.5; }
+        #fcExampleEn { font-size: 18px; line-height: 1.7; }
+        #fcExampleCh { font-size: 16px; line-height: 1.7; }
+
+        @media (max-width: 767px) {
+            header { position: relative !important; padding: 12px; }
+            header > div { gap: 8px; }
+            header > div > div:first-child { gap: 8px; min-width: 0; }
+            header h1 { font-size: 16px !important; letter-spacing: 0; }
+            header p { font-size: 12px !important; }
+            header > div > div:first-child > div:first-child { width: 32px; height: 36px; flex-shrink: 0; }
+            main { padding: 12px 8px; align-items: flex-start; }
+            /* Keep spelling in document flow, with room to scroll above an OSK
+               that shrinks only the visual viewport (Android Chrome). */
+            main:has(#screenQuiz:not(.hidden) #spellingForm:not(.hidden)) {
+                align-items: flex-start;
+                padding-bottom: calc(12px + var(--spelling-keyboard-inset, 0px));
+            }
+            main > div:has(#screenQuiz:not(.hidden) #spellingForm:not(.hidden)) { min-height: 0; }
+            #screenQuiz:has(#spellingForm:not(.hidden)),
+            #screenQuiz:has(#spellingForm:not(.hidden)) #quizContentArea {
+                flex-grow: 0;
+                justify-content: flex-start;
+            }
+            #screenQuiz:has(#spellingForm:not(.hidden)) #quizContentArea { margin-block: 0; }
+            #screenSetup, #screenFlashcard, #screenQuiz, #screenSummary { padding: 16px 12px; }
+            main :is(.text-xs, .text-\[11px\], .text-\[10px\]) {
+                font-size: 14px;
+                line-height: 1.65;
+            }
+            #screenSetup label:has(input[name="mode"]) p:first-child { font-size: 18px; line-height: 1.5; }
+            #screenSetup label:has(input[name="mode"]) p + p { margin-top: 4px; }
+            #screenSetup h3:has(#selectAllCheckbox), #screenSetup h3:has(#selectAllCheckbox) > div {
+                flex-wrap: wrap; gap: 8px;
+            }
+            #screenSetup label:has(#selectAllCheckbox) { min-height: 44px; }
+            #screenSetup label:has(input[name="limit"]) > div { font-size: 16px; min-height: 48px; }
+            #screenFlashcard > div:first-child, #screenQuiz > div:first-child {
+                flex-wrap: wrap; gap: 8px;
+            }
+            #screenQuiz > div:first-child > div { flex-wrap: wrap; }
+            #screenFlashcard button, #screenQuiz button, #screenSummary button {
+                min-height: 48px;
+            }
+            #screenFlashcard > div:last-child button, #screenSummary button,
+            #feedbackBoard button, #toggleTranslationBtn { font-size: 16px; }
+            #feedbackExampleEn { font-size: 18px; line-height: 1.7; }
+            #feedbackExampleCh, #feedbackTranslation, #feedbackThreeFormsContainer,
+            #questionTranslation, #spellingStatus { font-size: 16px; line-height: 1.7; }
+            #screenSummary p { line-height: 1.7; }
+            #initialAccuracyHelp, #totalAttemptsHelp { max-width: 28ch; }
+            footer { padding-inline: 16px; line-height: 1.7; }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950">
@@ -330,7 +444,7 @@
                                 </div>
 
                                 <div class="text-center text-[11px] text-slate-500">
-                                    🔄 點擊卡片任意處可翻回正面
+                                    ↕️ 例句可上下捲動<br>🔄 點擊卡片可翻回正面
                                 </div>
                             </div>
 
@@ -420,14 +534,16 @@
                     <!-- 使用原生表單支援手機送出鍵與 Enter；答案不放入輸入框屬性。 -->
                     <form id="spellingForm" class="hidden space-y-3" autocomplete="off" onsubmit="submitSpellingAnswer(event)">
                         <label for="spellingAnswer" class="block text-sm font-bold text-slate-300">英文答案</label>
-                        <input id="spellingAnswer" type="text" lang="en" inputmode="text" enterkeyhint="send"
-                            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-                            aria-describedby="spellingHelp spellingStatus" oninput="updateSpellingSubmit()"
-                            onkeydown="if (event.key === 'Enter' && (event.repeat || event.isComposing || event.keyCode === 229)) event.preventDefault()"
-                            class="w-full min-w-0 p-3.5 bg-slate-800 border border-slate-700 rounded-xl text-base text-white focus:outline-none focus:ring-2 focus:ring-teal-400">
+                        <div id="spellingControls">
+                            <input id="spellingAnswer" type="text" lang="en" inputmode="text" enterkeyhint="send"
+                                autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+                                aria-describedby="spellingHelp spellingStatus" oninput="updateSpellingSubmit()"
+                                onkeydown="if (event.key === 'Enter' && (event.repeat || event.isComposing || event.keyCode === 229)) event.preventDefault()"
+                                class="w-full min-w-0 p-3.5 bg-slate-800 border border-slate-700 rounded-xl text-base text-white focus:outline-none focus:ring-2 focus:ring-teal-400">
+                            <button id="spellingSubmit" type="submit" disabled class="w-full min-h-[52px] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all">送出答案</button>
+                        </div>
                         <p id="spellingHelp" class="text-xs text-slate-400 break-words">不分大小寫，忽略首尾空白；撇號可用彎／直形，其餘字母、空格及連字號須正確。</p>
                         <p id="spellingStatus" role="status" aria-live="polite" class="text-sm text-emerald-400 break-words"></p>
-                        <button id="spellingSubmit" type="submit" disabled class="w-full min-h-[52px] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all">送出答案</button>
                     </form>
                     <div id="spellingAlternativeFeedback" class="hidden space-y-4 rounded-xl border border-emerald-500 p-4">
                         <p id="spellingAlternativeMessage" role="status" aria-live="polite" class="text-emerald-300 leading-relaxed break-words"></p>
@@ -1362,7 +1478,7 @@
                 spellingReviewPending = false;
                 document.getElementById("spellingStatus").innerText = "";
                 updateSpellingSubmit();
-                input.focus({ preventScroll: true });
+                focusSpellingInput(input);
             }
 
             if (currentMode === "en-ch") {
@@ -1394,6 +1510,53 @@
                 wordText.innerText = clozeSentence;
                 renderOptionButtons(currentOptions.map(o => o.word));
             }
+        }
+
+        // No input/scroll listener: typing and manual reading must not move the
+        // page. Resize is debounced until keyboard animation has settled.
+        let spellingViewportTimer;
+        let spellingViewportListening = false;
+        function focusSpellingInput(input) {
+            if (!spellingViewportListening) {
+                const schedule = () => {
+                    clearTimeout(spellingViewportTimer);
+                    spellingViewportTimer = setTimeout(positionSpellingInput, 120);
+                };
+                window.visualViewport?.addEventListener('resize', schedule);
+                window.addEventListener('resize', schedule);
+                input.addEventListener('focus', schedule);
+                input.addEventListener('blur', schedule);
+                spellingViewportListening = true;
+            }
+            input.focus({ preventScroll: !window.matchMedia('(max-width: 767px)').matches });
+            clearTimeout(spellingViewportTimer);
+            spellingViewportTimer = setTimeout(positionSpellingInput, 120);
+        }
+
+        function positionSpellingInput() {
+            const main = document.querySelector('main');
+            const input = document.getElementById('spellingAnswer');
+            const viewport = window.visualViewport;
+            const active = window.matchMedia('(max-width: 767px)').matches &&
+                document.activeElement === input && input.getClientRects().length &&
+                !document.getElementById('screenQuiz').classList.contains('hidden');
+            const inset = active && viewport ? Math.max(0, innerHeight - viewport.height) : 0;
+            main.style.setProperty('--spelling-keyboard-inset', `${inset}px`);
+            if (!active) return;
+            const top = viewport?.offsetTop || 0;
+            const bottom = top + (viewport?.height || innerHeight);
+            const box = document.getElementById('spellingControls').getBoundingClientRect();
+            const question = document.getElementById('quizContentArea').getBoundingClientRect();
+            const promptFits = box.bottom - question.top <= bottom - top - 24;
+            // Let native focus scrolling work first; only correct actual clipping.
+            if (box.top >= top + 12 && box.bottom <= bottom - 12 &&
+                (!promptFits || question.top >= top + 12)) return;
+            // Keep the input and submit button together, including the prompt
+            // when it fits. Long prompts remain available by ordinary scrolling.
+            const target = promptFits
+                ? question.top - top - 12
+                : box.bottom - bottom + 12;
+            window.scrollBy({ top: target, behavior: 'instant' });
         }
 
         function resetQuizInteraction() {
