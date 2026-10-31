@@ -6,7 +6,7 @@ const path = require('node:path');
 const http = require('node:http');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const html = fs.readFileSync(process.env.HTML_PATH || path.join(__dirname, '../index.html'));
-const fixture = 'word,translation,part_of_speech,level,lesson\napple,蘋果,n.,B1,1\npear,梨子,n.,B1,1\nbeautiful,美麗的;漂亮的,adj.,B1,1';
+const fixture = 'word,translation,part_of_speech,level,lesson\napple,蘋果,n.,B1,1\napricot,杏桃,n.,B1,1\nbanana,香蕉,n.,B1,1\npear,梨子,n.,B1,1\nbeautiful,美麗的;漂亮的,adj.,B1,1';
 (async () => {
     const server = http.createServer((req, res) => {
         res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(html);
@@ -42,13 +42,21 @@ const fixture = 'word,translation,part_of_speech,level,lesson\napple,蘋果,n.,B
                 quizQueue.sort((a, b) => a.word.localeCompare(b.word)); renderQuizQuestion();
             });
             const settle = () => page.waitForTimeout(250);
-            const visibleInput = async () => {
+            const visibleControls = async (includePrompt = true) => {
                 await settle();
                 assert.equal(await page.locator('#spellingAnswer').evaluate(e => document.activeElement === e), true);
-                const box = await page.locator('#spellingAnswer').boundingBox();
                 const v = await page.evaluate(() => ({ top: visualViewport.offsetTop, height: visualViewport.height }));
-                assert.ok(box.y >= v.top + 11 && box.y + box.height <= v.top + v.height - 11,
-                    `${width}: input clipped: ${JSON.stringify({ box, v })}`);
+                const boxes = [];
+                for (const selector of ['#spellingAnswer', '#spellingSubmit', ...(includePrompt ? ['#quizContentArea > div:first-child'] : [])]) {
+                    const box = await page.locator(selector).boundingBox();
+                    assert.ok(box && box.y >= v.top + 11 && box.y + box.height <= v.top + v.height - 11,
+                        `${width}: ${selector} clipped: ${JSON.stringify({ box, v })}`);
+                    boxes.push(box);
+                }
+                assert.ok(Math.abs(boxes[0].y - boxes[1].y) < 1, 'input and submit share a row');
+                assert.ok(boxes[1].x >= boxes[0].x + boxes[0].width, 'controls do not overlap');
+                assert.ok(boxes[1].x + boxes[1].width <= page.viewportSize().width, 'submit stays within screen');
+                assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
             };
             const answer = async value => {
                 // Avoid Playwright's automatic scrolling masking application bugs.
@@ -68,54 +76,67 @@ const fixture = 'word,translation,part_of_speech,level,lesson\napple,蘋果,n.,B
             }
             // Opening animation: only visual height changes; layout stays at 740.
             await page.evaluate(() => { setKeyboardViewport(560); setKeyboardViewport(430); setKeyboardViewport(340); });
-            await visibleInput();
+            await visibleControls();
             assert.equal(await page.evaluate(() => innerHeight), 740);
-            const question = await page.locator('#quizContentArea > div').first().boundingBox();
-            assert.ok(question.y >= 0, 'normal prompt remains visible with input');
             // Viewport panning as well as shrinking: offset is part of the bounds.
             await page.evaluate(() => { scrollTo(0, 0); setKeyboardViewport(280, 35); });
-            await visibleInput();
+            await visibleControls();
             const beforeTyping = await page.evaluate(() => ({ y: scrollY, calls: correctionCalls }));
             await page.keyboard.type('apple', { delay: 25 }); await settle();
             assert.deepEqual(await page.evaluate(() => ({ y: scrollY, calls: correctionCalls })), beforeTyping);
             await page.keyboard.press('Enter');
-            await page.waitForFunction(() => !isWaitingFeedback); await visibleInput();
+            await page.waitForFunction(() => !isWaitingFeedback); await visibleControls();
             assert.equal(await page.locator('#spellingAnswer').inputValue(), '');
-            // Close/reopen, then scroll normally to submit (no scrollIntoView).
+            // Second and third questions: assert geometry BEFORE any pointer
+            // action. Raw coordinates cannot auto-scroll like locator.click().
+            for (const value of ['apricot', 'banana']) {
+                const attempts = await page.evaluate(() => quizTotalAttemptsCount);
+                await page.keyboard.type(value); await visibleControls();
+                const button = await page.locator('#spellingSubmit').boundingBox();
+                await page.mouse.dblclick(button.x + button.width / 2, button.y + button.height / 2);
+                await page.waitForFunction(() => !isWaitingFeedback); await visibleControls();
+                assert.equal(await page.evaluate(() => quizTotalAttemptsCount), attempts + 1, 'double click scores once');
+            }
+            // Close/reopen without scrolling to the button.
             await page.evaluate(() => setKeyboardViewport(740)); await settle();
             assert.equal(await page.locator('main').evaluate(e => e.style.getPropertyValue('--spelling-keyboard-inset')), '0px');
-            await page.evaluate(() => setKeyboardViewport(340)); await visibleInput();
+            await page.evaluate(() => setKeyboardViewport(340)); await visibleControls();
             await page.evaluate(() => { document.getElementById('spellingAnswer').value = 'pretty'; updateSpellingSubmit(); });
-            const submit = await page.locator('#spellingSubmit').boundingBox();
-            const y = await page.evaluate(() => scrollY);
-            await page.mouse.move(width / 2, 200);
-            await page.mouse.wheel(0, Math.max(0, submit.y + submit.height - 320)); await settle();
+            await visibleControls();
             const button = await page.locator('#spellingSubmit').boundingBox();
-            assert.ok(button.y >= 0 && button.y + button.height <= 340, 'submit reachable by ordinary scroll');
-            assert.ok((await page.evaluate(() => scrollY)) - y < 400, 'submit needs only a small scroll');
-            const calls = await page.evaluate(() => correctionCalls);
-            await page.waitForTimeout(350);
-            assert.equal(await page.evaluate(() => correctionCalls), calls, 'manual scrolling is not undone');
             await page.mouse.click(button.x + button.width / 2, button.y + button.height / 2);
             await page.waitForSelector('#spellingAlternativeFeedback:not(.hidden)');
             await page.evaluate(() => setKeyboardViewport(740));
             await page.locator('#spellingAlternativeContinue').click();
-            await page.evaluate(() => setKeyboardViewport(340)); await visibleInput();
+            await page.evaluate(() => setKeyboardViewport(340)); await visibleControls();
             await answer('wrong');
             await page.waitForSelector('#feedbackBoard:not(.hidden)');
             await page.evaluate(() => setKeyboardViewport(740)); await settle();
             assert.equal(await page.locator('main').evaluate(e => e.style.getPropertyValue('--spelling-keyboard-inset')), '0px');
             await page.locator('#feedbackBoard button').click();
-            await page.evaluate(() => setKeyboardViewport(340)); await visibleInput();
+            await page.evaluate(() => setKeyboardViewport(340)); await visibleControls();
+            // Landscape, including the width breakpoint where mobile correction
+            // is intentionally disabled, then return to portrait with OSK open.
+            await page.setViewportSize({ width: 740, height: width });
+            await page.evaluate(() => setKeyboardViewport(220)); await visibleControls(false);
+            await page.setViewportSize({ width: 820, height: width });
+            await settle();
+            assert.equal(await page.locator('main').evaluate(e => e.style.getPropertyValue('--spelling-keyboard-inset')), '0px');
+            await page.setViewportSize({ width, height: 740 });
+            await page.evaluate(() => setKeyboardViewport(340)); await visibleControls();
             // Long prompt: input has priority, prompt remains reachable above.
             await page.evaluate(() => {
                 quizQueue[0] = { ...database.find(x => x.word === 'pear'), translation: '長題目閱讀測試。'.repeat(30) };
                 renderQuizQuestion();
             });
-            await visibleInput();
+            await visibleControls(false);
+            const calls = await page.evaluate(() => correctionCalls);
+            await page.mouse.wheel(0, -100); await settle();
+            assert.equal(await page.evaluate(() => correctionCalls), calls, 'manual reading is not undone');
+            await page.evaluate(() => setKeyboardViewport(160)); await visibleControls(false);
             // Also support browsers that shrink the layout viewport itself.
             await page.setViewportSize({ width, height: 360 });
-            await page.evaluate(() => setKeyboardViewport(360)); await visibleInput();
+            await page.evaluate(() => setKeyboardViewport(360)); await visibleControls(false);
             await page.setViewportSize({ width, height: 740 });
             await page.evaluate(() => setKeyboardViewport(740)); await settle();
             await page.evaluate(() => exitToSetup()); await settle();

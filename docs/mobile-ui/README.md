@@ -50,7 +50,7 @@ Playwright 使用相同固定測試資料與隨機種子。每組包含 320、37
 
 測試沿用既有 Playwright／Chrome，不新增應用程式依賴或 CI。若已有 Playwright，可設定 `PLAYWRIGHT_MODULE` 指向該模組。產生前版截圖時，將基準 HTML 匯出到本機檔案，設定 `HTML_PATH` 與 `UI_BASELINE=1` 再執行 `tests/mobile-ui.cjs`；`SCREENSHOT_DIR` 可另外指定輸出目錄。測試會確認 Tailwind CDN 已載入，避免在無樣式狀態產生誤導截圖。
 
-## Android Chrome／Gboard 鍵盤遮擋修正
+## Android Chrome／Gboard 第一次鍵盤修正（50903ed，歷史紀錄）
 
 實機回報的原因是 `focus({ preventScroll: true })` 禁止原生焦點捲動，且手機拼字仍沿用外卡片 500px 最小高度、`quizContentArea` 的自動邊距／垂直置中。文字與按鈕放大後，輸入區更容易落在鍵盤下方。Android Chrome 預設只縮小 visual viewport，既有縮小整個 viewport 並由 Playwright 主動捲到按鈕的檢查不足以涵蓋此情況（[Chrome 說明](https://developer.chrome.com/blog/viewport-resize-behavior)）。
 
@@ -66,12 +66,33 @@ Playwright 使用相同固定測試資料與隨機種子。每組包含 320、37
 
 此測試模擬 viewport 幾何與事件，沒有真正喚起 Android／Gboard。仍需 Android Chrome 實機確認：進入拼字、連續答對、錯題解析、同義字後重練、按鈕與 Enter 送出、收起鍵盤後恢復版面。
 
+## 第二次手機驗收：輸入框與送出按鈕同列
+
+第一次閱讀調整保留直向堆疊表單；第一次鍵盤修正只確認輸入框邊界，並在輸入框可見時提早返回。說明文字與狀態欄位仍把送出按鈕推到下方，即使第一題勉強露出按鈕，連續換題也沒有保障。原測試允許先捲到按鈕才點擊，因此未攔下實機問題。
+
+本次僅調整拼字表單呈現與 viewport 定位：
+
+- 767px 以下將輸入框與完整「送出答案」按鈕放進同一水平操作列；輸入框可縮、按鈕不縮，間距 8px，說明／狀態置於操作列下方。桌面維持全寬輸入與按鈕。
+- 定位檢查整個操作列，包含 disabled 按鈕。若題目與操作列放得下，一併保持在 visual viewport 內；超長題目及極短高度優先保持操作列完整，相鄰控制不分離，題目可正常捲動閱讀。
+- 沿用自動聚焦、原生表單 Enter、120ms resize debounce、鍵盤頁尾空間；不新增 input／scroll 定位監聽，不修改判題、計分、重練、題庫或音效。
+
+驗證：
+
+- `node --test tests/spelling.test.cjs`：13/13 通過。
+- `node tests/browser.cjs`：完整既有瀏覽器回歸通過。
+- `node tests/mobile-ui.cjs`：320／375／390／1280px 通過，已檢視 320px 拼字操作列與桌面截圖；本次截圖另存暫存目錄，未覆寫原閱讀調整的歷史截圖。
+- `node tests/mobile-keyboard.cjs`：320／375／390／1280px 通過。每次同時斷言輸入框、送出按鈕與一般題目的完整邊界，包含第一題、連續正確換至第二／第三／第四題、viewport offset、逐字輸入不捲動、原始座標直接點擊／雙擊且只計分一次、Enter、同義字與目標字重練、錯題解析、鍵盤收合／重開、740px 橫向與 820px breakpoint 往返、長題目、160px 極短可視高度、layout viewport 同步縮小與回首頁。長題目／極短高度僅要求操作列完整並允許正常閱讀捲動。
+- 幾何檢查與送出點擊之前均未呼叫 `locator.click()`、`fill()` 或 `scrollIntoView()`，連續換題不能藉由 Playwright 自動捲動通過。
+- 同一新測試套用在修正前 `50903ed` 會失敗：320px 的 `#spellingSubmit` 位於 y=346.58–394.58，超出 340px visual viewport；修正後全部通過。`git diff --check` 通過。
+
+不新增依賴或 CI。仍待 Android Chrome／Gboard 實機驗收，PR #9 保持開啟，不合併 main。
+
 ## 仍需簡短手機人工驗收
 
 需要。此次瀏覽器為桌面 Chrome 的手機尺寸／觸控模擬，縮小 viewport 不能完整重現原生鍵盤。請在 iOS Safari 與 Android Chrome 各檢查：
 
 1. 單字卡翻面後上下滑動長例句，確認中文末端可讀、滑動不意外翻面，點擊可翻回；換卡正常。
-2. 拼字模式開啟鍵盤，確認輸入框及送出鈕可捲到可見處；以 Enter 和按鈕各送出，檢查同義字後繼續與重練。
+2. 一般直向拼字模式開啟鍵盤，第一題及連續答對後的第二、第三題須同時看見題目、輸入框及送出鈕，無須手動捲動；以 Enter 和按鈕各送出，檢查同義字後繼續與重練。超長題目／極短高度允許正常捲動。
 3. 直向／橫向切換、系統放大字體後，檢查返回、提示、解析繼續及結算重新挑戰按鈕。
 
 超長內容會增加頁面高度，這是保留完整內容的預期結果。字型載入、Safari 3D 合成、原生鍵盤／輸入法及作業系統字體縮放仍可能與此處 Chrome 截圖不同。

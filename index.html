@@ -104,6 +104,15 @@
         #feedbackTranslation { display: block; margin-left: 0; }
         #spellingAnswer { font-size: 18px; scroll-margin-block: 100px; }
         #spellingSubmit { scroll-margin-block: 24px; }
+        @media (max-width: 767px) {
+            #spellingControls { display: flex; align-items: stretch; gap: 8px; }
+            #spellingControls #spellingAnswer { flex: 1; width: 0; }
+            #spellingControls #spellingSubmit { width: auto; flex: none; padding-inline: 12px; }
+        }
+        @media (min-width: 768px) {
+            #spellingControls { display: contents; }
+            #spellingSubmit { margin-top: 12px; }
+        }
         #spellingHelp, #spellingStatus, #spellingAlternativeMessage { line-height: 1.7; }
 
         /* Both faces size the same grid cell. Long translations grow the card;
@@ -525,14 +534,16 @@
                     <!-- 使用原生表單支援手機送出鍵與 Enter；答案不放入輸入框屬性。 -->
                     <form id="spellingForm" class="hidden space-y-3" autocomplete="off" onsubmit="submitSpellingAnswer(event)">
                         <label for="spellingAnswer" class="block text-sm font-bold text-slate-300">英文答案</label>
-                        <input id="spellingAnswer" type="text" lang="en" inputmode="text" enterkeyhint="send"
-                            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-                            aria-describedby="spellingHelp spellingStatus" oninput="updateSpellingSubmit()"
-                            onkeydown="if (event.key === 'Enter' && (event.repeat || event.isComposing || event.keyCode === 229)) event.preventDefault()"
-                            class="w-full min-w-0 p-3.5 bg-slate-800 border border-slate-700 rounded-xl text-base text-white focus:outline-none focus:ring-2 focus:ring-teal-400">
+                        <div id="spellingControls">
+                            <input id="spellingAnswer" type="text" lang="en" inputmode="text" enterkeyhint="send"
+                                autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+                                aria-describedby="spellingHelp spellingStatus" oninput="updateSpellingSubmit()"
+                                onkeydown="if (event.key === 'Enter' && (event.repeat || event.isComposing || event.keyCode === 229)) event.preventDefault()"
+                                class="w-full min-w-0 p-3.5 bg-slate-800 border border-slate-700 rounded-xl text-base text-white focus:outline-none focus:ring-2 focus:ring-teal-400">
+                            <button id="spellingSubmit" type="submit" disabled class="w-full min-h-[52px] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all">送出答案</button>
+                        </div>
                         <p id="spellingHelp" class="text-xs text-slate-400 break-words">不分大小寫，忽略首尾空白；撇號可用彎／直形，其餘字母、空格及連字號須正確。</p>
                         <p id="spellingStatus" role="status" aria-live="polite" class="text-sm text-emerald-400 break-words"></p>
-                        <button id="spellingSubmit" type="submit" disabled class="w-full min-h-[52px] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all">送出答案</button>
                     </form>
                     <div id="spellingAlternativeFeedback" class="hidden space-y-4 rounded-xl border border-emerald-500 p-4">
                         <p id="spellingAlternativeMessage" role="status" aria-live="polite" class="text-emerald-300 leading-relaxed break-words"></p>
@@ -1534,12 +1545,15 @@
             if (!active) return;
             const top = viewport?.offsetTop || 0;
             const bottom = top + (viewport?.height || innerHeight);
-            const box = input.getBoundingClientRect();
-            // Let native focus scrolling work first; only correct actual clipping.
-            if (box.top >= top + 12 && box.bottom <= bottom - 12) return;
+            const box = document.getElementById('spellingControls').getBoundingClientRect();
             const question = document.getElementById('quizContentArea').getBoundingClientRect();
-            // Include the prompt whenever it fits, otherwise prioritize the input.
-            const target = box.bottom - question.top <= bottom - top - 24
+            const promptFits = box.bottom - question.top <= bottom - top - 24;
+            // Let native focus scrolling work first; only correct actual clipping.
+            if (box.top >= top + 12 && box.bottom <= bottom - 12 &&
+                (!promptFits || question.top >= top + 12)) return;
+            // Keep the input and submit button together, including the prompt
+            // when it fits. Long prompts remain available by ordinary scrolling.
+            const target = promptFits
                 ? question.top - top - 12
                 : box.bottom - bottom + 12;
             window.scrollBy({ top: target, behavior: 'instant' });
